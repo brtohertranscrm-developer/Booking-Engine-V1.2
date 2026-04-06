@@ -10,7 +10,8 @@ export const useAuthForm = () => {
   const [error, setError] = useState('');
   const [forgotStatus, setForgotStatus] = useState({ type: '', message: '' });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+  // Jika di production akan memakai URL asli, jika di local dev akan memakai path relatif (berkat proxy)
+  const API_URL = import.meta.env.VITE_API_URL || '';
 
   // --- FUNGSI LOGIN ---
   const handleLoginSubmit = async (formData) => {

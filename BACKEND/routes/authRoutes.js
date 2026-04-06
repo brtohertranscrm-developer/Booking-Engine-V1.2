@@ -9,7 +9,7 @@ require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET || 'brother_trans_secret_key_2026';
 
 // ==========================================
-// 1. REGISTER USER BARU (Sudah Dikembalikan ke Logika Asli)
+// 1. REGISTER USER BARU (Diperbaiki: Sinkronisasi Referral)
 // ==========================================
 router.post('/register', async (req, res) => {
   const { name, email, phone, password, referred_by } = req.body;
@@ -24,7 +24,7 @@ router.post('/register', async (req, res) => {
     const joinDate = new Date().toISOString();
     const referralCode = `BR-${name.substring(0,3).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
 
-    // Masukkan ke database (Lengkap dengan ID dan Join Date)
+    // Masukkan ke database
     db.run(`INSERT INTO users (id, name, email, phone, password, join_date, referral_code) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
       [userId, name, email, phone, hashedPassword, joinDate, referralCode], function(err) {
         if (err) {
@@ -32,12 +32,29 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Email sudah terdaftar.' });
         }
 
-        // Tambah miles jika pakai kode referral
+        // Logika Referral Code yang sudah disinkronkan
         if (referred_by) {
-          db.run(`UPDATE users SET miles = miles + 50 WHERE referral_code = ?`, [referred_by.toUpperCase()]);
+          db.run(
+            `UPDATE users SET miles = miles + 50 WHERE referral_code = ?`, 
+            [referred_by.toUpperCase()],
+            function(updateErr) {
+              if (updateErr) {
+                // Catat error tapi registrasi user baru tetap kita anggap sukses
+                console.error("Gagal menambahkan miles referral:", updateErr.message);
+              } else if (this.changes === 0) {
+                console.log(`Kode referral ${referred_by} tidak ditemukan.`);
+              } else {
+                console.log(`Berhasil menambah miles untuk ${referred_by}`);
+              }
+              
+              // Berikan respon HANYA SETELAH query update selesai
+              return res.json({ success: true, message: 'Registrasi berhasil. Silakan login.' });
+            }
+          );
+        } else {
+          // Jika tidak pakai kode referral, langsung berikan respon sukses
+          return res.json({ success: true, message: 'Registrasi berhasil. Silakan login.' });
         }
-        
-        res.json({ success: true, message: 'Registrasi berhasil. Silakan login.' });
     });
   } catch (error) { 
     console.error("Register Catch Error:", error);
@@ -49,7 +66,7 @@ router.post('/register', async (req, res) => {
 // 2. LOGIN USER / ADMIN (Logika Anti-Crash)
 // ==========================================
 router.post('/login', (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   // Validasi awal
   if (!email || !password) {
@@ -82,7 +99,7 @@ router.post('/login', (req, res) => {
 // 3. LUPA PASSWORD (FORGOT PASSWORD)
 // ==========================================
 router.post('/forgot-password', (req, res) => {
-  const { email } = req.body;
+  const { email } = req.body || {};
 
   if (!email) {
     return res.status(400).json({ success: false, error: 'Email wajib diisi.' });

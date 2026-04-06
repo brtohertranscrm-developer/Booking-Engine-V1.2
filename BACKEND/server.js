@@ -19,8 +19,19 @@ const PORT = process.env.PORT || 5001;
 // ==========================================
 // 2. MIDDLEWARE UMUM
 // ==========================================
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+// Konfigurasi CORS (Pastikan sudah pakai array yang kita bahas sebelumnya ya)
+const allowedOrigins = [
+  process.env.FRONTEND_URL, 
+  'http://localhost:5173', 
+  'http://127.0.0.1:5173'
+].filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+
+// Membaca JSON body
 app.use(express.json({ limit: '50mb' }));
+// Tambahan Baru: Membaca data form url-encoded (mencegah body undefined)
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
 
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
