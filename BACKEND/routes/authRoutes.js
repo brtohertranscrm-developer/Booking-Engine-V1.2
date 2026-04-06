@@ -78,4 +78,48 @@ router.post('/login', (req, res) => {
   });
 });
 
+// ==========================================
+// 3. LUPA PASSWORD (FORGOT PASSWORD)
+// ==========================================
+router.post('/forgot-password', (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, error: 'Email wajib diisi.' });
+  }
+
+  // Cek apakah email ada di database
+  db.get(`SELECT * FROM users WHERE email = ?`, [email], (err, user) => {
+    if (err) return res.status(500).json({ success: false, error: 'Kesalahan database.' });
+    if (!user) return res.status(400).json({ success: false, error: 'Email tidak terdaftar.' });
+
+    // Buat token unik (crypto sudah di-import di atas pada file Anda)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = Date.now() + 3600000; // Token kadaluarsa dalam 1 jam
+
+    // Simpan token ke tabel users
+    db.run(
+      `UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?`,
+      [resetToken, resetTokenExpiry, email],
+      function(updateErr) {
+        if (updateErr) {
+          console.error("Forgot Password DB Error:", updateErr);
+          return res.status(500).json({ success: false, error: 'Gagal menyimpan token reset.' });
+        }
+
+        // Karena Anda belum memasang library pengirim email (seperti Nodemailer),
+        // kita log tautannya di console backend sementara agar Anda bisa men-testing alurnya.
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+        console.log(`\n=== MOCK EMAIL SENT ===`);
+        console.log(`Kepada : ${email}`);
+        console.log(`Tautan : ${resetLink}`);
+        console.log(`=======================\n`);
+
+        // Balas ke frontend dengan format JSON agar 'await response.json()' tidak crash
+        res.json({ success: true, message: 'Tautan reset sandi telah dikirim ke email.' });
+      }
+    );
+  });
+});
+
 module.exports = router;
