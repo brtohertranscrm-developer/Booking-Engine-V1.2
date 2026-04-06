@@ -15,6 +15,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
 db.serialize(() => {
   console.log('⏳ Memeriksa dan membuat tabel database...');
 
+  // ==========================================
+  // TAHAP 1: DEFINISI FUNGSI HARUS DI ATAS
+  // ==========================================
+  const addColumnIfNotExists = (tableName, columnName, columnDef) => {
+    db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`, (err) => {
+      // Abaikan error jika kolom sudah ada
+      if (err && !err.message.includes("duplicate column name")) {
+        console.error(`Peringatan: Gagal menambah ${columnName} di ${tableName}:`, err.message);
+      }
+    });
+  };
+
+  // ==========================================
+  // TAHAP 2: PEMBUATAN TABEL UTAMA
+  // ==========================================
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -108,25 +123,14 @@ db.serialize(() => {
     )`);
 
   // ==========================================
-  // 3. SAFE MIGRATIONS (Auto-Update Kolom Baru)
+  // TAHAP 3: PEMANGGILAN FUNGSI (TAMBAH KOLOM)
   // ==========================================
   
-  const addColumnIfNotExists = (tableName, columnName, columnDef) => {
-    db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`, (err) => {
-      // Abaikan error jika kolom sudah ada
-      if (err && !err.message.includes("duplicate column name")) {
-        console.error(`Peringatan: Gagal menambah ${columnName} di ${tableName}:`, err.message);
-      }
-    });
-  };
-
   // Update kolom untuk tabel Users
+  addColumnIfNotExists('users', 'kyc_code', 'TEXT'); // <-- Penambahan kyc_code ada di sini
   addColumnIfNotExists('users', 'profile_picture', 'TEXT');
   addColumnIfNotExists('users', 'profile_banner', 'TEXT');
-  
-  // PERBAIKAN DI SINI: Hilangkan "UNIQUE" dari ALTER TABLE
   addColumnIfNotExists('users', 'referral_code', 'TEXT'); 
-  
   addColumnIfNotExists('users', 'reset_token', 'TEXT');
   addColumnIfNotExists('users', 'reset_token_expiry', 'INTEGER');
   addColumnIfNotExists('users', 'miles', 'INTEGER DEFAULT 0');
@@ -134,7 +138,7 @@ db.serialize(() => {
   // Update kolom untuk tabel Bookings
   addColumnIfNotExists('bookings', 'location', 'TEXT');
 
-  // PERBAIKAN DI SINI: Gunakan UNIQUE INDEX sebagai ganti ALTER TABLE UNIQUE
+  // Buat Unique Index untuk Referral Code
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`, (err) => {
     if (err) {
         // Abaikan error jika index sudah terbentuk

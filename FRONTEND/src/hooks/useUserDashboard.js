@@ -31,11 +31,16 @@ export const useUserDashboard = () => {
       const resultTop = await responseTop.json();
 
       if (result.success) {
+        // 1. Simpan seluruh data dashboard ke state
         setDashboardData(result.data);
+        
         if (result.data.user.profile_banner) setBannerUrl(result.data.user.profile_banner);
 
+        // 2. Sinkronisasi status KYC lokal
         const freshKyc = String(result.data.user.kyc_status || 'unverified').toLowerCase();
         setKycStatus(freshKyc);
+        
+        // 3. Sinkronisasi status KYC global
         if (updateKycStatus) updateKycStatus(freshKyc);
       }
       if (resultTop.success) setTopTravellers(resultTop.data);
@@ -112,10 +117,20 @@ export const useUserDashboard = () => {
     } catch (error) { console.error(error); }
   };
 
+  // UPDATE PENTING DI SINI
   return {
-    dashboardData, isLoading, kycStatus, bannerUrl, setBannerUrl, topTravellers,
+    dashboardData, 
+    isLoading, 
+    kycStatus, 
+    bannerUrl, 
+    setBannerUrl, 
+    topTravellers,
+    // Kita panggil dashboardData?.user lebih dulu agar data yang di-render adalah data real-time terbaru dari database
     user: dashboardData?.user || user,
     activeOrder: dashboardData?.activeOrder || null,
-    verifyKycCode, saveProfile, updateBanner, navigate
+    verifyKycCode, 
+    saveProfile, 
+    updateBanner, 
+    navigate
   };
 };

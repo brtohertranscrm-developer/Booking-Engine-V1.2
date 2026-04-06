@@ -4,15 +4,15 @@ import { useUserDashboard } from '../../hooks/useUserDashboard';
 import UserProfileHeader from '../../components/user/dashboard/UserProfileHeader';
 import ActiveBookingCard from '../../components/user/dashboard/ActiveBookingCard';
 import UserStats from '../../components/user/dashboard/UserStats';
+import KycStatus from '../../components/user/kyc/KycStatus';
 
-// Kami membiarkan Sidebar Menu dan Modal Profil langsung di dalam file ini 
-// karena biasanya cukup sederhana, namun komponen utamanya sudah dipecah.
-import { Trophy, Gift, Navigation, MapPin, ChevronRight, Headset, MessageCircle, LifeBuoy, X, User, Edit3, ShieldCheck, Copy } from 'lucide-react';
+// Icon imports
+import { Trophy, Gift, Navigation, MapPin, ChevronRight, Headset, MessageCircle, LifeBuoy, X, User, Edit3, Copy } from 'lucide-react';
 
 export default function Dashboard() {
   const {
     isLoading, kycStatus, bannerUrl, setBannerUrl, topTravellers,
-    user, activeOrder, verifyKycCode, saveProfile, updateBanner, navigate
+    user, activeOrder, saveProfile, updateBanner, navigate, verifyKycCode // <-- Fungsi ditarik di sini
   } = useUserDashboard();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -47,15 +47,22 @@ export default function Dashboard() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 -mt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* BAGIAN KIRI / UTAMA */}
           <div className="lg:col-span-8 space-y-8">
             
-            {/* 2. Pesanan Aktif (Jika Ada) */}
-            <ActiveBookingCard activeOrder={activeOrder} navigate={navigate} />
+            {/* 2. Tampilkan Status KYC di sini jika belum verified */}
+            {kycStatus !== 'verified' && (
+              <KycStatus status={kycStatus} verifyKycCode={verifyKycCode} /> // <-- Fungsi diteruskan ke sini
+            )}
 
-            {/* 3. Kotak Status Miles / Point */}
+            {/* 3. Pesanan Aktif (Jika Ada) */}
+            <ActiveBookingCard order={activeOrder} navigate={navigate} />
+
+            {/* 4. Kotak Status Miles / Point */}
             <UserStats currentMiles={currentMiles} navigate={navigate} />
 
-            {/* 4. Kotak Promo Ajak Teman */}
+            {/* 5. Kotak Promo Ajak Teman */}
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] p-6 sm:p-8 text-white relative overflow-hidden flex flex-col sm:flex-row justify-between items-center sm:items-end shadow-sm gap-6">
               <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="relative z-10 w-full sm:w-auto text-center sm:text-left">
@@ -70,7 +77,7 @@ export default function Dashboard() {
             
           </div>
 
-          {/* 5. SIDEBAR KANAN (Top Traveller, Menu Cepat, Bantuan) */}
+          {/* BAGIAN KANAN / SIDEBAR */}
           <div className="lg:col-span-4 space-y-6">
             
             {/* Top Traveller */}
@@ -94,7 +101,7 @@ export default function Dashboard() {
                   <div className="text-center p-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
                     <Trophy size={32} className="text-slate-300 mb-3 mx-auto" />
                     <h4 className="text-sm font-black text-slate-900 mb-1">Takhta Masih Kosong!</h4>
-                    <button onClick={() => navigate('/motor')} className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-rose-500">Mulai Petualangan</button>
+                    <button onClick={() => navigate('/motor')} className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-rose-500 transition-colors">Mulai Petualangan</button>
                   </div>
                 )}
               </div>
