@@ -49,6 +49,7 @@ db.serialize(() => {
     )
   `);
 
+  // Tabel Induk: Katalog Motor
   db.run(`
     CREATE TABLE IF NOT EXISTS motors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,6 +58,18 @@ db.serialize(() => {
       base_price INTEGER NOT NULL,
       stock INTEGER NOT NULL,
       image_url TEXT
+    )
+  `);
+
+  // Tabel Anak: Data Fisik Plat Nomor Armada
+  db.run(`
+    CREATE TABLE IF NOT EXISTS motor_units (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      motor_id INTEGER NOT NULL,
+      plate_number TEXT UNIQUE NOT NULL,
+      status TEXT DEFAULT 'RDY', 
+      condition_notes TEXT,
+      FOREIGN KEY (motor_id) REFERENCES motors(id)
     )
   `);
 
@@ -112,7 +125,8 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`CREATE TABLE IF NOT EXISTS promotions (
+  db.run(`
+    CREATE TABLE IF NOT EXISTS promotions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       code TEXT NOT NULL,
@@ -120,14 +134,16 @@ db.serialize(() => {
       desc TEXT,
       tag TEXT,
       is_active INTEGER DEFAULT 1
-    )`);
+    )
+  `);
 
   // ==========================================
   // TAHAP 3: PEMANGGILAN FUNGSI (TAMBAH KOLOM)
+  // Harus dipanggil SEBELUM blok db.serialize berakhir
   // ==========================================
   
   // Update kolom untuk tabel Users
-  addColumnIfNotExists('users', 'kyc_code', 'TEXT'); // <-- Penambahan kyc_code ada di sini
+  addColumnIfNotExists('users', 'kyc_code', 'TEXT'); 
   addColumnIfNotExists('users', 'profile_picture', 'TEXT');
   addColumnIfNotExists('users', 'profile_banner', 'TEXT');
   addColumnIfNotExists('users', 'referral_code', 'TEXT'); 
@@ -137,12 +153,18 @@ db.serialize(() => {
 
   // Update kolom untuk tabel Bookings
   addColumnIfNotExists('bookings', 'location', 'TEXT');
-  addColumnIfNotExists('bookings', 'payment_status', 'TEXT DEFAULT "paid"'); // <-- Tambahkan baris ini
+  addColumnIfNotExists('bookings', 'payment_status', 'TEXT DEFAULT "paid"'); 
+  addColumnIfNotExists('bookings', 'unit_id', 'INTEGER'); 
+  addColumnIfNotExists('bookings', 'plate_number', 'TEXT'); 
+
+  // Update kolom untuk tabel Motors
+  addColumnIfNotExists('motors', 'location', 'TEXT DEFAULT "Lempuyangan"');
+  addColumnIfNotExists('motors', 'price_12h', 'INTEGER DEFAULT 0');
+  addColumnIfNotExists('motors', 'allow_dynamic_pricing', 'INTEGER DEFAULT 1'); // <--- Kolom Whitelist
 
   // Buat Unique Index untuk Referral Code
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`, (err) => {
     if (err) {
-        // Abaikan error jika index sudah terbentuk
         if (!err.message.includes("index idx_users_referral_code already exists")) {
             console.error("Gagal membuat Unique Index untuk referral_code:", err.message);
         }
@@ -150,7 +172,7 @@ db.serialize(() => {
   });
 
   console.log('✅ Semua tabel & struktur kolom berhasil diverifikasi!');
-});
+}); // <--- PENUTUP BLOK SERIALIZE (Pastikan tidak ada perintah addColumnIfNotExists di bawah ini)
 
 // Mengaktifkan Foreign Key
 db.run("PRAGMA foreign_keys = ON", (err) => {

@@ -1,8 +1,59 @@
-import React, { useState } from 'react';
-import { AlertTriangle, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Save, Loader2 } from 'lucide-react';
 
 const SurgeTab = () => {
-  const [surgeConfig, setSurgeConfig] = useState({ isActive: true, multiplier: 20, triggerStock: 2 });
+  const [surgeConfig, setSurgeConfig] = useState({ isActive: false, multiplier: 0, triggerStock: 0 });
+  const [isSaving, setIsSaving] = useState(false);
+  const token = localStorage.getItem('token');
+
+  // Ambil data asli dari database saat halaman dibuka
+  useEffect(() => {
+    fetch('http://localhost:5001/api/admin/pricing/surge', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (result.success && result.data) {
+        setSurgeConfig({
+          isActive: result.data.is_active === 1,
+          multiplier: result.data.markup_percentage || 0,
+          triggerStock: result.data.stock_condition || 0
+        });
+      }
+    })
+    .catch(err => console.error("Gagal load data surge:", err));
+  }, [token]);
+
+  // Fungsi untuk mengirim data ke database
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/admin/pricing/surge', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          is_active: surgeConfig.isActive,
+          markup_percentage: surgeConfig.multiplier,
+          stock_condition: surgeConfig.triggerStock
+        })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        alert('✅ Konfigurasi Surge Pricing berhasil disimpan ke Sistem!');
+      } else {
+        alert('Gagal menyimpan konfigurasi.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan jaringan.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
@@ -34,7 +85,13 @@ const SurgeTab = () => {
           <div>
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Persentase Ekstra Kenaikan Harga</label>
             <div className="flex items-center gap-3">
-              <input type="number" value={surgeConfig.multiplier} onChange={(e) => setSurgeConfig({...surgeConfig, multiplier: e.target.value})} disabled={!surgeConfig.isActive} className="w-24 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-black text-lg text-brand-dark focus:ring-2 focus:ring-amber-500 outline-none disabled:opacity-50 text-center" />
+              <input 
+                type="number" 
+                value={surgeConfig.multiplier} 
+                onChange={(e) => setSurgeConfig({...surgeConfig, multiplier: parseInt(e.target.value) || 0})} 
+                disabled={!surgeConfig.isActive} 
+                className="w-24 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-black text-lg text-brand-dark focus:ring-2 focus:ring-amber-500 outline-none disabled:opacity-50 text-center" 
+              />
               <span className="font-black text-gray-400 text-xl">%</span>
             </div>
           </div>
@@ -43,17 +100,30 @@ const SurgeTab = () => {
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Pemicu Sistem (Sisa Stok)</label>
             <div className="flex items-center gap-3">
               <span className="font-bold text-gray-500 text-sm">Aktif jika sisa stok &le; </span>
-              <input type="number" value={surgeConfig.triggerStock} onChange={(e) => setSurgeConfig({...surgeConfig, triggerStock: e.target.value})} disabled={!surgeConfig.isActive} className="w-20 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl font-black text-brand-dark focus:ring-2 focus:ring-amber-500 outline-none disabled:opacity-50 text-center" />
+              <input 
+                type="number" 
+                value={surgeConfig.triggerStock} 
+                onChange={(e) => setSurgeConfig({...surgeConfig, triggerStock: parseInt(e.target.value) || 0})} 
+                disabled={!surgeConfig.isActive} 
+                className="w-20 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl font-black text-brand-dark focus:ring-2 focus:ring-amber-500 outline-none disabled:opacity-50 text-center" 
+              />
               <span className="font-bold text-gray-500 text-sm">Unit</span>
             </div>
           </div>
 
-          <button disabled={!surgeConfig.isActive} onClick={() => alert('Konfigurasi Surge Pricing berhasil disimpan!')} className="w-full bg-brand-dark text-white font-black py-4 rounded-xl hover:bg-amber-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
-            <Save size={18} /> Simpan Konfigurasi
+          {/* Tombol Simpan yang sudah dihubungkan ke fungsi handleSave */}
+          <button 
+            disabled={!surgeConfig.isActive || isSaving} 
+            onClick={handleSave} 
+            className="w-full bg-brand-dark text-white font-black py-4 rounded-xl hover:bg-amber-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+          >
+            {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            {isSaving ? 'Menyimpan...' : 'Simpan Konfigurasi'}
           </button>
         </div>
       </div>
     </div>
   );
 };
+
 export default SurgeTab;
