@@ -55,14 +55,16 @@ export const useSearchResults = () => {
     }
   }, [currentCity, cityContext]);
 
-  // Hitung Total Hari
+// Hitung Total Hari
   useEffect(() => {
     try {
       const start = new Date(startDate || today);
       const end = new Date(endDate || tomorrow);
       const diffTime = end.getTime() - start.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setTotalDays(diffDays > 0 ? diffDays : 1);
+      
+      // FIX: Cek apakah hasilnya NaN untuk mencegah bug harga di checkout
+      setTotalDays(!isNaN(diffDays) && diffDays > 0 ? diffDays : 1);
     } catch (e) {
       setTotalDays(1);
     }

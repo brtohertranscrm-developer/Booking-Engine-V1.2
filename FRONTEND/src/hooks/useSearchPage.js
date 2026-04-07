@@ -72,16 +72,29 @@ export const useSearchPage = () => {
     navigate('.', { state: formData, replace: true });
   };
 
-  const handleRent = (motor, activePrice) => {
+const handleRent = (motor, activePrice) => {
+    // BUG FIX 1: Hitung total hari secara mandiri karena variabel totalDays belum ada
+    const start = new Date(activeSearch.startDate);
+    const end = new Date(activeSearch.endDate);
+    const diffTime = end.getTime() - start.getTime();
+    let calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Fallback jika perhitungan gagal atau kurang dari 1
+    if (isNaN(calculatedDays) || calculatedDays < 1) calculatedDays = 1;
+
+    // BUG FIX 2: Fallback activePrice karena SearchResultList hanya mengirim (motor) tanpa harga
+    const finalPrice = activePrice || motor.current_price || motor.base_price;
+
+    // BUG FIX 3: Gunakan 'activeSearch' bukan 'searchParams'
     navigate('/checkout-motor', {
       state: {
         motorId: motor.id,
         motorName: motor.name,
-        pickupLocation: searchParams.pickupLocation,
-        startDate: searchParams.startDate,
-        endDate: searchParams.endDate,
-        totalDays: totalDays, 
-        basePrice: activePrice // PASTIKAN activePrice DIKIRIM SEBAGAI basePrice
+        pickupLocation: activeSearch.pickupLocation,
+        startDate: activeSearch.startDate,
+        endDate: activeSearch.endDate,
+        totalDays: calculatedDays, 
+        basePrice: finalPrice 
       }
     });
   };
