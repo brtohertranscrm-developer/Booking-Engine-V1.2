@@ -1,65 +1,95 @@
 import React from 'react';
 
 const BookingTable = ({ data, onEdit }) => {
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500 font-medium">
+        Belum ada transaksi
+      </div>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto bg-white rounded-lg shadow">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-100 text-gray-700">
-            <th className="p-4 border-b">Order ID</th>
-            <th className="p-4 border-b">Pelanggan</th>
-            <th className="p-4 border-b">Item</th>
-            <th className="p-4 border-b">Tanggal Sewa</th>
-            <th className="p-4 border-b">Total (Rp)</th>
-            <th className="p-4 border-b">Pembayaran</th>
-            <th className="p-4 border-b">Status</th>
-            <th className="p-4 border-b">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.length === 0 ? (
-            <tr><td colSpan="8" className="p-4 text-center">Belum ada transaksi</td></tr>
-          ) : (
-            data.map((b) => (
-              <tr key={b.order_id} className="hover:bg-gray-50 border-b">
-                <td className="p-4 font-mono text-sm">{b.order_id}</td>
-                <td className="p-4">
-                  <div className="font-semibold">{b.user_name}</div>
-                  <div className="text-xs text-gray-500">{b.user_phone}</div>
-                </td>
-                <td className="p-4">
-                  <div>{b.item_name}</div>
-                  <div className="text-xs text-gray-500 uppercase">{b.item_type}</div>
-                </td>
-                <td className="p-4 text-sm">
-                  {new Date(b.start_date).toLocaleDateString('id-ID')} - <br/>
-                  {new Date(b.end_date).toLocaleDateString('id-ID')}
-                </td>
-                <td className="p-4 font-semibold">{b.total_price?.toLocaleString('id-ID')}</td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded text-xs text-white ${b.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {b.payment_status}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded text-xs text-white ${
-                    b.status === 'active' ? 'bg-blue-500' : 
-                    b.status === 'completed' ? 'bg-green-500' : 
-                    b.status === 'cancelled' ? 'bg-red-500' : 'bg-yellow-500'
-                  }`}>
-                    {b.status}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <button onClick={() => onEdit(b)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
-                    Update
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {data.map((b) => (
+        <div 
+          key={b.order_id} 
+          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow"
+        >
+          {/* Bagian Header Kartu: Order ID & Status */}
+          <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+            <span className="font-mono text-xs font-bold text-gray-600">
+              {b.order_id}
+            </span>
+            <span className={`px-3 py-1 rounded-full text-[10px] font-bold text-white tracking-wider uppercase ${
+              b.status === 'active' ? 'bg-blue-500' : 
+              b.status === 'completed' ? 'bg-green-500' : 
+              b.status === 'cancelled' ? 'bg-red-500' : 'bg-yellow-500'
+            }`}>
+              {b.status}
+            </span>
+          </div>
+
+          {/* Bagian Body Kartu: Informasi Detail */}
+          <div className="p-4 flex-1 space-y-4">
+            
+            {/* Info Pelanggan & Item (Kiri & Kanan) */}
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Pelanggan</p>
+                <p className="font-bold text-sm text-gray-800">{b.user_name}</p>
+                <p className="text-xs text-gray-500">{b.user_phone}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Item</p>
+                <p className="font-bold text-sm text-gray-800">{b.item_name}</p>
+                <span className="inline-block mt-0.5 px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-semibold uppercase">
+                  {b.item_type}
+                </span>
+              </div>
+            </div>
+
+            {/* Tanggal Sewa */}
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Durasi Sewa</p>
+              <p className="text-xs font-medium text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100 inline-block">
+                {new Date(b.start_date).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})} 
+                <span className="mx-2 text-gray-400">➔</span> 
+                {new Date(b.end_date).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}
+              </p>
+            </div>
+
+            {/* Pembayaran & Harga */}
+            <div className="bg-gray-50 rounded-lg p-3 flex justify-between items-center border border-gray-100">
+              <div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Pembayaran</p>
+                <span className={`px-2 py-1 rounded text-[10px] font-bold text-white uppercase ${
+                  b.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'
+                }`}>
+                  {b.payment_status}
+                </span>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Total Harga</p>
+                <p className="font-black text-sm text-gray-800">
+                  Rp {b.total_price?.toLocaleString('id-ID')}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bagian Footer Kartu: Tombol Aksi */}
+          <div className="p-4 border-t border-gray-100">
+            <button 
+              onClick={() => onEdit(b)} 
+              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-blue-700 transition-colors flex justify-center items-center gap-2"
+            >
+              Update Status Pesanan
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, Bike, ShieldCheck, TrendingUp, Users, 
+  LayoutDashboard, Bike, FileText, TrendingUp, Users, 
   Settings, LogOut, ClipboardList, Package 
 } from 'lucide-react';
 
@@ -13,7 +13,7 @@ const AdminSidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, handleLogout }) =
     { name: 'Manajemen Armada', path: '/admin/armada', icon: <Bike size={20} /> },
     { name: 'Manajemen Loker', path: '/admin/loker', icon: <Package size={20} /> },
     { name: 'Dynamic Pricing', path: '/admin/pricing', icon: <TrendingUp size={20} /> },
-    { name: 'Verifikasi KYC', path: '/admin/kyc', icon: <ShieldCheck size={20} /> },
+    { name: 'Konten Artikel', path: '/admin/artikel', icon: <FileText size={20} /> },
     { name: 'Data Pelanggan', path: '/admin/users', icon: <Users size={20} /> },
     { name: 'Pengaturan', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
