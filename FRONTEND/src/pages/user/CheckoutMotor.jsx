@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Wallet, Tag } from 'lucide-react';
+import { ChevronLeft, Wallet, Tag, ShieldAlert } from 'lucide-react';
 import { useCheckoutMotor } from '../../hooks/useCheckoutMotor';
 import RenterForm from '../../components/user/checkout/RenterForm';
 import OrderSummary from '../../components/user/checkout/OrderSummary';
@@ -79,6 +79,17 @@ export default function CheckoutMotor() {
   const discountAmount = calculateDiscount();
   const finalPrice = grandTotal - discountAmount;
 
+  // === 5. LOGIKA PROTEKSI KYC ===
+  const isKycVerified = user?.kyc_status === 'verified';
+
+  const handleSecureCheckout = () => {
+    if (!isKycVerified) {
+      alert("Harap verifikasi identitas (KYC) Anda terlebih dahulu untuk dapat melanjutkan.");
+      return;
+    }
+    handleCheckout();
+  };
+
   if (!isReady) return null;
 
   return (
@@ -92,7 +103,32 @@ export default function CheckoutMotor() {
 
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-8">Selesaikan Pesanan Anda</h1>
 
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* --- BANNER PERINGATAN KYC --- */}
+        {!isKycVerified && (
+          <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-5 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-rose-100 p-3 rounded-full text-rose-600">
+                <ShieldAlert size={24} />
+              </div>
+              <div>
+                <h3 className="text-rose-700 font-black text-lg">Verifikasi Identitas Diperlukan</h3>
+                <p className="text-rose-600 font-medium text-sm mt-1">
+                  Status identitas Anda saat ini: <span className="uppercase font-bold">{user?.kyc_status || 'UNVERIFIED'}</span>. Anda tidak dapat melanjutkan pesanan sebelum data diverifikasi oleh Admin.
+                </p>
+              </div>
+            </div>
+            {/* PERBAIKAN: path disesuaikan dengan AppRoutes.jsx yaitu '/dashboard' */}
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              className="bg-rose-600 hover:bg-rose-700 text-white font-black px-6 py-3 rounded-xl transition-colors whitespace-nowrap w-full sm:w-auto"
+            >
+              Verifikasi Sekarang
+            </button>
+          </div>
+        )}
+
+        {/* --- KONTEN UTAMA (Akan blur/tidak bisa di-klik jika KYC belum verified) --- */}
+        <div className={`flex flex-col lg:flex-row gap-8 items-start transition-all duration-300 ${!isKycVerified ? 'opacity-50 pointer-events-none grayscale-[30%]' : ''}`}>
           
           {/* KIRI: Formulir Pembayaran & Detail User */}
           <div className="w-full lg:w-2/3">
@@ -153,10 +189,9 @@ export default function CheckoutMotor() {
               subTotal={subTotal}
               insuranceFee={insuranceFee}
               adminFee={adminFee}
-              // PERBAIKAN: Melempar harga yang sudah didiskon ke komponen summary
               grandTotal={finalPrice} 
               isLoading={isLoading}
-              handleCheckout={handleCheckout}
+              handleCheckout={handleSecureCheckout} 
             />
 
           </div>

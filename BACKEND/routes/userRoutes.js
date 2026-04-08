@@ -70,17 +70,25 @@ router.post('/support/tickets', (req, res) => {
 // ==========================================
 router.post('/bookings', (req, res) => {
   const { order_id, item_type, item_name, location, start_date, end_date, total_price } = req.body;
-  db.run(`INSERT INTO bookings (order_id, user_id, item_type, item_name, location, start_date, end_date, total_price, status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 'paid')`,
-    [order_id, req.user.id, item_type, item_name, location, start_date, end_date, total_price], (err) => {
-      if(err) return res.status(500).json({ success: false, error: err.message });
-      res.json({ success: true });
-    });
-});
 
-router.get('/users/history', (req, res) => {
-  db.all(`SELECT * FROM bookings WHERE user_id = ? ORDER BY start_date DESC`, [req.user.id], (err, rows) => {
-    if(err) return res.status(500).json({ success: false, error: err.message });
-    res.json({ success: true, data: rows || [] });
+  // 1. Cek status KYC user di database terlebih dahulu
+  db.get(`SELECT kyc_status FROM users WHERE id = ?`, [req.user.id], (err, user) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    
+    // 2. Tolak jika status bukan 'verified' (misal: 'unverified', 'rejected', atau null)
+    if (!user || user.kyc_status !== 'verified') {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Akses ditolak. Anda harus melakukan verifikasi data (KYC) terlebih dahulu sebelum membuat pesanan.' 
+      });
+    }
+
+    // 3. Lanjutkan insert jika sudah verified
+    db.run(`INSERT INTO bookings (order_id, user_id, item_type, item_name, location, start_date, end_date, total_price, status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 'paid')`,
+      [order_id, req.user.id, item_type, item_name, location, start_date, end_date, total_price], (err) => {
+        if(err) return res.status(500).json({ success: false, error: err.message });
+        res.json({ success: true });
+      });
   });
 });
 
