@@ -162,6 +162,12 @@ db.serialize(() => {
   addColumnIfNotExists('motors', 'price_12h', 'INTEGER DEFAULT 0');
   addColumnIfNotExists('motors', 'allow_dynamic_pricing', 'INTEGER DEFAULT 1'); // <--- Kolom Whitelist
 
+  // UPDATE: Kolom baru di tabel promotions dimasukkan ke SINI
+  addColumnIfNotExists('promotions', 'usage_limit', 'INTEGER DEFAULT 0'); 
+  addColumnIfNotExists('promotions', 'current_usage', 'INTEGER DEFAULT 0');
+  addColumnIfNotExists('promotions', 'discount_percent', 'INTEGER DEFAULT 0');
+  addColumnIfNotExists('promotions', 'max_discount', 'INTEGER DEFAULT 0');
+
   // Buat Unique Index untuk Referral Code
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`, (err) => {
     if (err) {
@@ -172,7 +178,7 @@ db.serialize(() => {
   });
 
   console.log('✅ Semua tabel & struktur kolom berhasil diverifikasi!');
-}); // <--- PENUTUP BLOK SERIALIZE (Pastikan tidak ada perintah addColumnIfNotExists di bawah ini)
+}); // <--- PENUTUP BLOK SERIALIZE 
 
 // Mengaktifkan Foreign Key
 db.run("PRAGMA foreign_keys = ON", (err) => {

@@ -70,4 +70,28 @@ router.get('/articles/:id', (req, res) => {
   });
 });
 
+// Endpoint untuk cek validasi kode promo
+router.post('/promotions/validate', (req, res) => {
+  const { code } = req.body;
+  
+  db.get(`SELECT * FROM promotions WHERE code = ? AND is_active = 1`, [code], (err, promo) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    if (!promo) return res.status(404).json({ success: false, message: "Kode promo tidak ditemukan atau sudah tidak aktif." });
+
+    // Cek limit penggunaan
+    if (promo.usage_limit > 0 && promo.current_usage >= promo.usage_limit) {
+      return res.status(400).json({ success: false, message: "Kuota kode promo ini sudah habis." });
+    }
+
+    res.json({ 
+      success: true, 
+      data: {
+        code: promo.code,
+        discount_percent: promo.discount_percent,
+        max_discount: promo.max_discount
+      } 
+    });
+  });
+});
+
 module.exports = router;

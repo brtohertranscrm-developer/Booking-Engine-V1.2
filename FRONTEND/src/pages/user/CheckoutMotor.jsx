@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronLeft, Wallet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, Wallet, Tag } from 'lucide-react';
 import { useCheckoutMotor } from '../../hooks/useCheckoutMotor';
 import RenterForm from '../../components/user/checkout/RenterForm';
 import OrderSummary from '../../components/user/checkout/OrderSummary';
@@ -11,6 +11,73 @@ export default function CheckoutMotor() {
     subTotal, adminFee, insuranceFee, grandTotal,
     handleCheckout
   } = useCheckoutMotor();
+
+  // === 1. STATE UNTUK FITUR PROMO ===
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError] = useState('');
+  const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+  // === 2. TAHAP GAMIFIKASI ONBOARDING OTOMATIS ===
+  useEffect(() => {
+    // Deteksi: Jika user login, miles di bawah 1000, dan belum ada promo yang terpasang
+    if (user && user.miles < 1000 && !appliedPromo) {
+      setAppliedPromo({
+        code: 'ONBOARDING',
+        discount_percent: 5, // Diskon 5%
+        max_discount: 5000   // Maksimal diskon Rp 5.000
+      });
+    }
+  }, [user]);
+
+  // === 3. FUNGSI VALIDASI KODE PROMO ===
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setIsCheckingPromo(true);
+    setPromoError('');
+
+    try {
+      const res = await fetch(`${API_URL}/api/promotions/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode })
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        setAppliedPromo(result.data);
+        setPromoError('');
+        setPromoCode(''); // Kosongkan input setelah berhasil
+      } else {
+        setPromoError(result.message);
+        setAppliedPromo(null);
+      }
+    } catch (err) {
+      setPromoError('Gagal memproses kode promo. Cek koneksi server Anda.');
+      setAppliedPromo(null);
+    } finally {
+      setIsCheckingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode('');
+    setPromoError('');
+  };
+
+  // === 4. LOGIKA KALKULASI HARGA DISKON ===
+  const calculateDiscount = () => {
+    if (!appliedPromo) return 0;
+    // Diskon dihitung dari subTotal (harga sewa murni)
+    let discount = (subTotal * appliedPromo.discount_percent) / 100;
+    return Math.min(discount, appliedPromo.max_discount); 
+  };
+
+  const discountAmount = calculateDiscount();
+  const finalPrice = grandTotal - discountAmount;
 
   if (!isReady) return null;
 
@@ -28,22 +95,71 @@ export default function CheckoutMotor() {
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* KIRI: Formulir Pembayaran & Detail User */}
-          <RenterForm 
-            user={user} 
-            paymentMethod={paymentMethod} 
-            setPaymentMethod={setPaymentMethod} 
-          />
+          <div className="w-full lg:w-2/3">
+            <RenterForm 
+              user={user} 
+              paymentMethod={paymentMethod} 
+              setPaymentMethod={setPaymentMethod} 
+            />
+          </div>
 
-          {/* KANAN: Ringkasan Pesanan (Sticky) */}
-          <OrderSummary 
-            bookingData={bookingData}
-            subTotal={subTotal}
-            insuranceFee={insuranceFee}
-            adminFee={adminFee}
-            grandTotal={grandTotal}
-            isLoading={isLoading}
-            handleCheckout={handleCheckout}
-          />
+          {/* KANAN: Kolom Promo & Ringkasan Pesanan (Sticky) */}
+          <div className="w-full lg:w-1/3 flex flex-col gap-6 sticky top-24">
+            
+            {/* --- KOTAK INPUT PROMO --- */}
+            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+              <h3 className="font-black text-brand-dark flex items-center gap-2 mb-4">
+                <Tag size={18} className="text-blue-600"/> Punya Kode Promo?
+              </h3>
+
+              {!appliedPromo ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Contoh: MUDIKAMAN"
+                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                    <button 
+                      onClick={handleApplyPromo}
+                      disabled={isCheckingPromo || !promoCode}
+                      className="bg-brand-dark text-white px-5 py-3 rounded-xl text-xs font-black hover:bg-amber-500 transition-colors disabled:opacity-50"
+                    >
+                      {isCheckingPromo ? 'CEK...' : 'PASANG'}
+                    </button>
+                  </div>
+                  {promoError && <p className="text-red-500 text-[10px] font-bold px-1">{promoError}</p>}
+                </div>
+              ) : (
+                // Tampilan jika promo berhasil terpasang
+                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Promo Terpasang</div>
+                    <div className="font-bold text-slate-900 text-sm">{appliedPromo.code}</div>
+                    <div className="text-xs text-emerald-600 font-medium mt-0.5">Hemat Rp {discountAmount.toLocaleString('id-ID')}</div>
+                  </div>
+                  <button onClick={handleRemovePromo} className="text-[10px] font-black text-rose-500 hover:text-white hover:bg-rose-500 border border-rose-200 px-3 py-1.5 rounded-lg transition-colors">
+                    HAPUS
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* --- RINGKASAN PESANAN --- */}
+            <OrderSummary 
+              bookingData={bookingData}
+              subTotal={subTotal}
+              insuranceFee={insuranceFee}
+              adminFee={adminFee}
+              // PERBAIKAN: Melempar harga yang sudah didiskon ke komponen summary
+              grandTotal={finalPrice} 
+              isLoading={isLoading}
+              handleCheckout={handleCheckout}
+            />
+
+          </div>
 
         </div>
       </div>
