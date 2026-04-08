@@ -150,6 +150,9 @@ db.serialize(() => {
   addColumnIfNotExists('users', 'reset_token', 'TEXT');
   addColumnIfNotExists('users', 'reset_token_expiry', 'INTEGER');
   addColumnIfNotExists('users', 'miles', 'INTEGER DEFAULT 0');
+  
+  // ---> TAMBAHAN BARU: Kolom domisili/lokasi user <---
+  addColumnIfNotExists('users', 'location', 'TEXT DEFAULT "Lainnya"'); 
 
   // Update kolom untuk tabel Bookings
   addColumnIfNotExists('bookings', 'location', 'TEXT');

@@ -12,8 +12,8 @@ router.use(verifyUser);
 router.get('/dashboard/me', (req, res) => {
   const query = `
     SELECT id, name, email, phone, kyc_status, kyc_code, miles, 
-           profile_picture, profile_banner, referral_code, role 
-    FROM users WHERE id = ?`; // Pastikan kyc_status dan kyc_code ikut terpilih
+           profile_picture, profile_banner, referral_code, role, location 
+    FROM users WHERE id = ?`; // PERBAIKAN: Menambahkan kolom 'location'
 
   db.get(query, [req.user.id], (err, user) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
@@ -26,7 +26,23 @@ router.get('/dashboard/me', (req, res) => {
 });
 
 // ==========================================
-// 2. GET TOP TRAVELLERS (YANG BIKIN ERROR 404)
+// 2. UPDATE PROFILE USER (NAMA, PHONE, LOKASI)
+// ==========================================
+router.put('/profile', (req, res) => {
+  const { name, phone, location } = req.body; 
+  
+  db.run(
+    `UPDATE users SET name = ?, phone = ?, location = ? WHERE id = ?`,
+    [name, phone, location || 'Lainnya', req.user.id],
+    function (err) {
+      if (err) return res.status(500).json({ success: false, error: err.message });
+      res.json({ success: true, message: 'Profil berhasil diupdate!' });
+    }
+  );
+});
+
+// ==========================================
+// 3. GET TOP TRAVELLERS (YANG BIKIN ERROR 404)
 // ==========================================
 router.get('/dashboard/top-travellers', (req, res) => {
   // Tambahkan WHERE miles > 0 agar yang nol tidak tampil
@@ -37,7 +53,7 @@ router.get('/dashboard/top-travellers', (req, res) => {
 });
 
 // ==========================================
-// 3. SUPPORT TICKETS
+// 4. SUPPORT TICKETS
 // ==========================================
 router.post('/support/tickets', (req, res) => {
   const { order_id, subject, message } = req.body;
@@ -50,7 +66,7 @@ router.post('/support/tickets', (req, res) => {
 });
 
 // ==========================================
-// 4. BOOKINGS
+// 5. BOOKINGS
 // ==========================================
 router.post('/bookings', (req, res) => {
   const { order_id, item_type, item_name, location, start_date, end_date, total_price } = req.body;
@@ -69,7 +85,7 @@ router.get('/users/history', (req, res) => {
 });
 
 // ==========================================
-// 5. KYC (KNOW YOUR CUSTOMER)
+// 6. KYC (KNOW YOUR CUSTOMER)
 // ==========================================
 router.put('/users/kyc', (req, res) => {
   db.run(`UPDATE users SET kyc_status = ? WHERE id = ?`, [req.body.status, req.user.id], (err) => {
@@ -96,7 +112,7 @@ router.post('/users/kyc/verify', (req, res) => {
 });
 
 // ==========================================
-// 6. EXTEND BOOKING (PERPANJANG SEWA)
+// 7. EXTEND BOOKING (PERPANJANG SEWA)
 // ==========================================
 router.put('/bookings/:orderId/extend', (req, res) => {
   const { additional_days } = req.body;

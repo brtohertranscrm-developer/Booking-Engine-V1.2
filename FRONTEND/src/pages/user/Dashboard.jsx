@@ -12,12 +12,19 @@ import { Trophy, Gift, Navigation, MapPin, ChevronRight, Headset, MessageCircle,
 export default function Dashboard() {
   const {
     isLoading, kycStatus, bannerUrl, setBannerUrl, topTravellers,
-    user, activeOrder, saveProfile, updateBanner, navigate, verifyKycCode, handleExtend // <-- Tarik di sini
+    user, activeOrder, saveProfile, updateBanner, navigate, verifyKycCode, handleExtend
   } = useUserDashboard();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [editForm, setEditForm] = useState({ name: user?.name || '', phone: user?.phone || '', password: '' });
+  
+  // PERBAIKAN 1: Tambahkan 'location' ke dalam state awal editForm
+  const [editForm, setEditForm] = useState({ 
+    name: user?.name || '', 
+    phone: user?.phone || '', 
+    location: user?.location || 'Lainnya', // Tarik dari database jika ada
+    password: '' 
+  });
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-rose-500" size={40} /></div>;
 
@@ -53,7 +60,7 @@ export default function Dashboard() {
             
             {/* 2. Tampilkan Status KYC di sini jika belum verified */}
             {kycStatus !== 'verified' && (
-              <KycStatus status={kycStatus} verifyKycCode={verifyKycCode} /> // <-- Fungsi diteruskan ke sini
+              <KycStatus status={kycStatus} verifyKycCode={verifyKycCode} /> 
             )}
 
             {/* 3. Pesanan Aktif (Jika Ada) */}
@@ -143,22 +150,46 @@ export default function Dashboard() {
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"><X size={20} /></button>
             </div>
             <form onSubmit={handleSave} className="p-6">
+              
               <div className="mb-4">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Email Akun</label>
                 <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 flex items-center gap-2 cursor-not-allowed"><User size={16}/> {user?.email}</div>
               </div>
+              
               <div className="mb-4">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nama Lengkap</label>
                 <input type="text" required value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-slate-900 outline-none" />
               </div>
+              
               <div className="mb-4">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
                 <input type="text" required value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-slate-900 outline-none" />
               </div>
+
+              {/* PERBAIKAN 2: UI Dropdown Domisili / Lokasi diletakkan di sini */}
+              <div className="mb-4">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Domisili / Lokasi</label>
+                <div className="relative">
+                  <select 
+                    value={editForm.location} 
+                    onChange={(e) => setEditForm({...editForm, location: e.target.value})}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-slate-900 outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="Yogyakarta">Yogyakarta</option>
+                    <option value="Solo">Solo</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 font-black">
+                    ▼
+                  </div>
+                </div>
+              </div>
+
               <div className="mb-6">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Password Baru</label>
                 <input type="password" placeholder="Kosongkan jika tak ingin diubah" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none" />
               </div>
+              
               <button type="submit" disabled={isSavingProfile} className="w-full bg-slate-900 hover:bg-rose-500 text-white font-black py-4 rounded-xl text-sm transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
                 {isSavingProfile ? <Loader2 className="animate-spin" size={18} /> : 'Simpan Perubahan'}
               </button>
