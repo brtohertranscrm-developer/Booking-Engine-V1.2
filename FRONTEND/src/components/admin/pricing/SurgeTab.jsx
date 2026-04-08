@@ -35,7 +35,8 @@ const SurgeTab = () => {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          is_active: surgeConfig.isActive,
+          // PERBAIKAN 1: Pastikan data yang dikirim adalah integer 1 atau 0 untuk SQLite
+          is_active: surgeConfig.isActive ? 1 : 0, 
           markup_percentage: surgeConfig.multiplier,
           stock_condition: surgeConfig.triggerStock
         })
@@ -74,6 +75,7 @@ const SurgeTab = () => {
               <div className="font-bold text-brand-dark">Status Algoritma</div>
               <div className="text-xs text-gray-400 font-medium">Nyalakan/matikan sistem harga dinamis stok.</div>
             </div>
+            {/* Bagian Toggle UI */}
             <button 
               onClick={() => setSurgeConfig({...surgeConfig, isActive: !surgeConfig.isActive})}
               className={`w-14 h-8 rounded-full flex items-center p-1 transition-colors ${surgeConfig.isActive ? 'bg-amber-500' : 'bg-gray-300'}`}
@@ -111,9 +113,9 @@ const SurgeTab = () => {
             </div>
           </div>
 
-          {/* Tombol Simpan yang sudah dihubungkan ke fungsi handleSave */}
+          {/* PERBAIKAN 2: Jangan disable tombol simpan saat saklar dimatikan! */}
           <button 
-            disabled={!surgeConfig.isActive || isSaving} 
+            disabled={isSaving} 
             onClick={handleSave} 
             className="w-full bg-brand-dark text-white font-black py-4 rounded-xl hover:bg-amber-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >

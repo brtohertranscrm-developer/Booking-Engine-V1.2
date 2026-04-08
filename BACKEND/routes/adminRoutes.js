@@ -204,4 +204,66 @@ router.put('/pricing/surge', (req, res) => {
   });
 });
 
+// ==========================================
+// SEASONAL PRICING MANAGEMENT
+// ==========================================
+
+// Ambil data Kalender Event/Seasonal
+router.get('/pricing/seasonal', (req, res) => {
+  db.all(`SELECT * FROM price_rules WHERE rule_type = 'seasonal'`, (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, data: rows || [] });
+  });
+});
+
+// Simpan/Update Kalender Event secara massal (Bulk Replace)
+router.post('/pricing/seasonal', (req, res) => {
+  const { rules } = req.body;
+  
+  // Hapus semua data seasonal lama untuk di-replace dengan yang baru
+  db.run(`DELETE FROM price_rules WHERE rule_type = 'seasonal'`, (err) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    
+    // Jika rules kosong (admin menghapus semua event)
+    if (!rules || rules.length === 0) {
+      return res.json({ success: true, message: 'Semua event seasonal berhasil dikosongkan' });
+    }
+
+    // Susun data baru untuk dimasukkan ke database
+    const placeholders = rules.map(() => `('seasonal', ?, ?, ?, ?)`).join(',');
+    const values = [];
+    rules.forEach(rule => {
+      values.push(rule.name, rule.startDate, rule.endDate, rule.markup);
+    });
+
+    db.run(
+      `INSERT INTO price_rules (rule_type, name, start_date, end_date, markup_percentage) VALUES ${placeholders}`, 
+      values, 
+      function(err) {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        res.json({ success: true, message: 'Kalender Event berhasil disimpan permanen' });
+      }
+    );
+  });
+});
+
+router.post('/pricing/surge', (req, res) => {
+  const { is_active, markup_percentage } = req.body; // Ambil nilai dari frontend
+  
+  // Amankan tipe data, paksa menjadi 1 atau 0 bagaimanapun bentuk kiriman frontend
+  const statusInt = (is_active === 1 || is_active === true || is_active === '1') ? 1 : 0;
+
+  // Update ke SQLite (Sesuaikan query di bawah dengan nama tabel dan field yang Anda gunakan)
+  db.run(
+    `UPDATE price_rules SET is_active = ?, markup_percentage = ? WHERE rule_type = 'surge'`,
+    [statusInt, markup_percentage],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+      res.json({ success: true, message: 'Status algoritma berhasil disimpan!', is_active: statusInt });
+    }
+  );
+});
+
 module.exports = router;
