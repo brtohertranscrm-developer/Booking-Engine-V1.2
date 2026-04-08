@@ -40,7 +40,29 @@ export const useBooking = () => {
       });
       fetchBookings(); // Refresh data setelah update
     } catch (error) { 
-      console.error(error); 
+      console.error("Gagal update status booking:", error); 
+    }
+  };
+
+  // ========================================================
+  // 3. FUNGSI BARU: Mengambil 1 data booking untuk Invoice
+  // ========================================================
+  const fetchBookingByOrderId = async (orderId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/bookings/${orderId}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        return result.data; // Mengembalikan object transaksi
+      } else {
+        throw new Error(result.message || "Data transaksi tidak ditemukan");
+      }
+    } catch (error) {
+      console.error("Gagal mengambil detail booking:", error);
+      throw error; // Melempar error ke komponen AdminInvoice untuk ditampilkan di layar
     }
   };
 
@@ -48,5 +70,11 @@ export const useBooking = () => {
     fetchBookings();
   }, [fetchBookings]); // Dependency yang aman tanpa peringatan eslint
 
-  return { bookings, loading, updateBookingStatus };
+  // Pastikan fetchBookingByOrderId diekspor di sini
+  return { 
+    bookings, 
+    loading, 
+    updateBookingStatus, 
+    fetchBookingByOrderId 
+  };
 };

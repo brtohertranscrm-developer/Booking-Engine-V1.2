@@ -38,6 +38,7 @@ import AdminPricing from '../pages/admin/AdminPricing';
 import AdminArtikel from '../pages/admin/AdminArtikel'; 
 import AdminPromotions from '../pages/admin/AdminPromotions';    
 import AdminSupport from '../pages/admin/AdminSupport';
+import AdminInvoice from '../pages/admin/AdminInvoice'; // Tambahkan baris ini
 
 const AppRoutes = () => {
   return (
@@ -79,6 +80,7 @@ const AppRoutes = () => {
           <Route path="artikel" element={<AdminArtikel />} /> {/* Path dirapikan */}
           <Route path="promotions" element={<AdminPromotions />} />    
           <Route path="support" element={<AdminSupport />} />
+          <Route path="invoice/:id" element={<AdminInvoice />} /> {/* Rute untuk halaman invoice */}
         </Route>
 
         {/* CATCH-ALL ROUTE */}
