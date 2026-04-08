@@ -58,7 +58,8 @@ export default function Navbar() {
                 {user ? (
                   <>
                     <button 
-                      onClick={() => navigate('/dashboard')} 
+                      // PERBAIKAN: Cek role user untuk navigasi Desktop
+                      onClick={() => navigate(user?.role === 'admin' ? '/admin' : '/dashboard')} 
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 text-brand-primary font-bold hover:bg-rose-100 transition-colors"
                     >
                       <UserCircle size={20} />
@@ -166,11 +167,15 @@ export default function Navbar() {
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 capitalize">{user.name}</p>
-                    <p className="text-xs text-gray-500 font-medium">Pengguna Terverifikasi</p>
+                    {/* Opsional: Ubah label Pengguna Terverifikasi jadi Admin jika role nya admin */}
+                    <p className="text-xs text-gray-500 font-medium">
+                      {user?.role === 'admin' ? 'Administrator' : 'Pengguna Terverifikasi'}
+                    </p>
                   </div>
                 </div>
                 <button 
-                  onClick={() => navigate('/dashboard')}
+                  // PERBAIKAN: Cek role user untuk navigasi Mobile
+                  onClick={() => navigate(user?.role === 'admin' ? '/admin' : '/dashboard')}
                   className="w-full py-4 rounded-2xl bg-brand-primary text-white font-black hover:bg-brand-secondary transition-colors"
                 >
                   Masuk ke Dashboard
