@@ -161,6 +161,29 @@ router.put('/bookings/:orderId/status', (req, res) => {
 
   db.run(query, params, function(err) {
     if (err) return res.status(500).json({ success: false, error: err.message });
+
+    // ===========================================================
+    // UPDATE MILES LOGIC (Trigger jika status "completed")
+    // ===========================================================
+    if (status && (status.toLowerCase() === 'completed' || status.toLowerCase() === 'selesai')) {
+      db.get(`SELECT user_id, total_price FROM bookings WHERE order_id = ?`, [req.params.orderId], (err, booking) => {
+        if (!err && booking) {
+          // Asumsi: Setiap Rp 10.000 = 1 Mile. Ubah angka 10000 sesuai kebutuhan Anda.
+          const earnedMiles = Math.floor(booking.total_price / 10000); 
+          
+          db.run(
+            `UPDATE users SET miles = miles + ? WHERE id = ?`,
+            [earnedMiles, booking.user_id],
+            (updateErr) => {
+              if (updateErr) console.error("❌ Gagal menambahkan miles:", updateErr.message);
+              else console.log(`✅ Berhasil menambahkan ${earnedMiles} miles ke akun ${booking.user_id}`);
+            }
+          );
+        }
+      });
+    }
+    // ===========================================================
+
     res.json({ success: true, message: 'Status transaksi berhasil diupdate' });
   });
 });
