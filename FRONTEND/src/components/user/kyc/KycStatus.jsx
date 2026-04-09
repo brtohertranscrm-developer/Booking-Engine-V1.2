@@ -101,7 +101,7 @@ const KycStatus = ({ status, verifyKycCode }) => {
                     maxLength={10}
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="Contoh: A8X9B"
+                    placeholder="Contoh: BT-A8X9B" 
                     className="w-full pl-10 pr-4 py-3 bg-white text-slate-900 placeholder-slate-400 rounded-xl text-sm font-black tracking-widest outline-none focus:ring-4 focus:ring-white/30 transition-all uppercase shadow-inner"
                     disabled={isLoading}
                   />

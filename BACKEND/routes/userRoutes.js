@@ -12,8 +12,8 @@ router.use(verifyUser);
 router.get('/dashboard/me', (req, res) => {
   const query = `
     SELECT id, name, email, phone, kyc_status, kyc_code, miles, 
-           profile_picture, profile_banner, referral_code, role, location 
-    FROM users WHERE id = ?`; // PERBAIKAN: Menambahkan kolom 'location'
+           profile_picture, profile_banner, referral_code, role, location, has_completed_tc_gamification 
+    FROM users WHERE id = ?`;
 
   db.get(query, [req.user.id], (err, user) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
@@ -42,10 +42,9 @@ router.put('/profile', (req, res) => {
 });
 
 // ==========================================
-// 3. GET TOP TRAVELLERS (YANG BIKIN ERROR 404)
+// 3. GET TOP TRAVELLERS
 // ==========================================
 router.get('/dashboard/top-travellers', (req, res) => {
-  // Tambahkan WHERE miles > 0 agar yang nol tidak tampil
   db.all(`SELECT name, miles FROM users WHERE miles > 0 ORDER BY miles DESC LIMIT 3`, [], (err, rows) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
     res.json({ success: true, data: rows || [] });
@@ -71,11 +70,9 @@ router.post('/support/tickets', (req, res) => {
 router.post('/bookings', (req, res) => {
   const { order_id, item_type, item_name, location, start_date, end_date, total_price } = req.body;
 
-  // 1. Cek status KYC user di database terlebih dahulu
   db.get(`SELECT kyc_status FROM users WHERE id = ?`, [req.user.id], (err, user) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
     
-    // 2. Tolak jika status bukan 'verified' (misal: 'unverified', 'rejected', atau null)
     if (!user || user.kyc_status !== 'verified') {
       return res.status(403).json({ 
         success: false, 
@@ -83,7 +80,6 @@ router.post('/bookings', (req, res) => {
       });
     }
 
-    // 3. Lanjutkan insert jika sudah verified
     db.run(`INSERT INTO bookings (order_id, user_id, item_type, item_name, location, start_date, end_date, total_price, status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 'paid')`,
       [order_id, req.user.id, item_type, item_name, location, start_date, end_date, total_price], (err) => {
         if(err) return res.status(500).json({ success: false, error: err.message });
@@ -129,24 +125,63 @@ router.put('/bookings/:orderId/extend', (req, res) => {
   db.get(`SELECT start_date, end_date, total_price FROM bookings WHERE order_id = ? AND user_id = ?`, [orderId, req.user.id], (err, booking) => {
     if (err || !booking) return res.status(500).json({ success: false, error: 'Pesanan tidak ditemukan' });
 
-    // Hitung sisa hari dan harga rata-rata per hari
     const start = new Date(booking.start_date);
     const currentEnd = new Date(booking.end_date);
     const currentDays = Math.max(1, Math.ceil((currentEnd - start) / (1000 * 60 * 60 * 24)));
     const pricePerDay = Math.round(booking.total_price / currentDays);
     const extraCost = parseInt(additional_days) * pricePerDay;
 
-    // Set tanggal kembali yang baru
     currentEnd.setDate(currentEnd.getDate() + parseInt(additional_days));
     const newEndDate = currentEnd.toISOString().split('T')[0];
 
-    // Update database (tambah harga dan set ke unpaid)
     db.run(
       `UPDATE bookings SET end_date = ?, total_price = total_price + ?, payment_status = 'unpaid' WHERE order_id = ?`,
       [newEndDate, extraCost, orderId],
       function(err) {
         if (err) return res.status(500).json({ success: false, error: err.message });
         res.json({ success: true, new_end_date: newEndDate, extra_cost: extraCost });
+      }
+    );
+  });
+});
+
+// ==========================================
+// 8. CLAIM GAMIFICATION MILES (T&C)
+// ==========================================
+router.post('/claim-tc-miles', (req, res) => {
+  const userId = req.user.id;
+
+  // 1. Cek User di Database
+  db.get(`SELECT miles, has_completed_tc_gamification FROM users WHERE id = ?`, [userId], (err, user) => {
+    if (err) {
+      if (err.message.includes("no such column: has_completed_tc_gamification")) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Database butuh update. Kolom has_completed_tc_gamification belum ada." 
+        });
+      }
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    
+    if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan." });
+
+    // 2. Cegah kecurangan: Cek apakah user sudah pernah klaim
+    if (user.has_completed_tc_gamification === 1 || user.has_completed_tc_gamification === 'true') {
+      return res.status(400).json({ success: false, message: "Anda sudah mengklaim hadiah misi ini sebelumnya." });
+    }
+
+    // 3. Tambahkan 500 Miles dan tandai misi selesai
+    db.run(
+      `UPDATE users SET miles = COALESCE(miles, 0) + 500, has_completed_tc_gamification = 1 WHERE id = ?`, 
+      [userId], 
+      function(err) {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        
+        res.status(200).json({ 
+          success: true, 
+          message: "500 Miles berhasil ditambahkan!",
+          miles: (user.miles || 0) + 500
+        });
       }
     );
   });

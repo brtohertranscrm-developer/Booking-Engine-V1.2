@@ -199,6 +199,8 @@ db.serialize(() => {
   addColumnIfNotExists('articles', 'geo_location', 'TEXT');
   addColumnIfNotExists('articles', 'views', 'INTEGER DEFAULT 0');
 
+  addColumnIfNotExists('users', 'has_completed_tc_gamification', 'INTEGER DEFAULT 0');
+
   // Buat Unique Index untuk Referral Code
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`, (err) => {
     if (err && !err.message.includes("index idx_users_referral_code already exists")) {

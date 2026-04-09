@@ -12,9 +12,9 @@ export const useDashboard = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-  // 1. Fungsi penarik token yang selalu fresh (segar)
+  // 1. PERBAIKAN: Utamakan 'admin_token' agar tidak tertukar dengan token User
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -24,25 +24,33 @@ export const useDashboard = () => {
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 2. Tembak API Stats dengan header dinamis
+      // 2. Tembak API Stats
       const resStats = await fetch(`${API_URL}/api/admin/stats`, {
         headers: getAuthHeaders() 
       });
       const dataStats = await resStats.json();
-      if (dataStats.success) setStats(dataStats.data);
+      
+      if (!resStats.ok) {
+         console.error("API Stats Ditolak:", dataStats.error || dataStats.message);
+      } else if (dataStats.success) {
+         setStats(dataStats.data);
+      }
 
-      // 3. Tembak API Bookings dengan header dinamis
+      // 3. Tembak API Bookings
       const resBookings = await fetch(`${API_URL}/api/admin/bookings`, {
         headers: getAuthHeaders() 
       });
       const dataBookings = await resBookings.json();
-      if (dataBookings.success) setRecentBookings(dataBookings.data.slice(0, 4));
+      
+      if (dataBookings.success) {
+         setRecentBookings(dataBookings.data.slice(0, 4));
+      }
     } catch (error) {
       console.error('Gagal mengambil data dashboard:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [API_URL]); // Hapus authToken dari dependency karena sudah ditarik otomatis di dalam
+  }, [API_URL]);
 
   useEffect(() => {
     fetchDashboardData();

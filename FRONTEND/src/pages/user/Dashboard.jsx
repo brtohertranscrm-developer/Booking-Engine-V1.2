@@ -5,11 +5,17 @@ import UserProfileHeader from '../../components/user/dashboard/UserProfileHeader
 import ActiveBookingCard from '../../components/user/dashboard/ActiveBookingCard';
 import UserStats from '../../components/user/dashboard/UserStats';
 import KycStatus from '../../components/user/kyc/KycStatus';
+import ArticleSidebar from '../../components/user/dashboard/ArticleSidebar';
+
+// IMPORT KOMPONEN GAMIFIKASI BARU
+import MissionBanner from '../../components/user/dashboard/MissionBanner';
+import TCOnboardingModal from '../../components/user/dashboard/TCOnboardingModal';
 
 // Icon imports
 import { Trophy, Gift, Navigation, MapPin, ChevronRight, Headset, MessageCircle, LifeBuoy, X, User, Edit3, Copy } from 'lucide-react';
 
 export default function Dashboard() {
+  // PASTIKAN 'navigate' ADA DI SINI
   const {
     isLoading, kycStatus, bannerUrl, setBannerUrl, topTravellers,
     user, activeOrder, saveProfile, updateBanner, navigate, verifyKycCode, handleExtend
@@ -18,11 +24,25 @@ export default function Dashboard() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
-  // PERBAIKAN 1: Tambahkan 'location' ke dalam state awal editForm
+  // STATE GAMIFIKASI
+  const [showTCOnboarding, setShowTCOnboarding] = useState(false);
+  
+  // Cek apakah user sudah pernah menyelesaikan misi dari database (jika ada flag-nya), default false
+  const [hasCompletedMission, setHasCompletedMission] = useState(
+    user?.has_completed_tc_gamification === 1 || user?.has_completed_tc_gamification === true
+  );
+
+  React.useEffect(() => {
+    if (user?.has_completed_tc_gamification === 1 || user?.has_completed_tc_gamification === true) {
+      setHasCompletedMission(true);
+    }
+  }, [user]);
+  
+  // Tambahkan 'location' ke dalam state awal editForm
   const [editForm, setEditForm] = useState({ 
     name: user?.name || '', 
     phone: user?.phone || '', 
-    location: user?.location || 'Lainnya', // Tarik dari database jika ada
+    location: user?.location || 'Lainnya', 
     password: '' 
   });
 
@@ -43,6 +63,13 @@ export default function Dashboard() {
     setIsSavingProfile(false);
   };
 
+  // HANDLER KETIKA MISI SELESAI
+  const handleClaimSuccess = () => {
+    setShowTCOnboarding(false);
+    setHasCompletedMission(true);
+    window.location.reload(); // Refresh untuk menarik saldo Miles & state terbaru
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 font-sans text-slate-900 relative">
       
@@ -55,21 +82,28 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 -mt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
+          {/* ========================================= */}
           {/* BAGIAN KIRI / UTAMA */}
+          {/* ========================================= */}
           <div className="lg:col-span-8 space-y-8">
+
+            {/* BANNER GAMIFIKASI */}
+            {!hasCompletedMission && (
+              <MissionBanner onClick={() => setShowTCOnboarding(true)} />
+            )}
             
-            {/* 2. Tampilkan Status KYC di sini jika belum verified */}
+            {/* Status KYC */}
             {kycStatus !== 'verified' && (
               <KycStatus status={kycStatus} verifyKycCode={verifyKycCode} /> 
             )}
 
-            {/* 3. Pesanan Aktif (Jika Ada) */}
+            {/* Pesanan Aktif */}
             <ActiveBookingCard order={activeOrder} navigate={navigate} handleExtend={handleExtend} />
 
-            {/* 4. Kotak Status Miles / Point */}
+            {/* Status Miles */}
             <UserStats currentMiles={currentMiles} navigate={navigate} />
 
-            {/* 5. Kotak Promo Ajak Teman */}
+            {/* Kotak Promo Ajak Teman */}
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] p-6 sm:p-8 text-white relative overflow-hidden flex flex-col sm:flex-row justify-between items-center sm:items-end shadow-sm gap-6">
               <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="relative z-10 w-full sm:w-auto text-center sm:text-left">
@@ -84,7 +118,9 @@ export default function Dashboard() {
             
           </div>
 
+          {/* ========================================= */}
           {/* BAGIAN KANAN / SIDEBAR */}
+          {/* ========================================= */}
           <div className="lg:col-span-4 space-y-6">
             
             {/* Top Traveller */}
@@ -113,6 +149,9 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* ---> WIDGET ARTIKEL DITAMBAHKAN DI SINI <--- */}
+            <ArticleSidebar navigate={navigate} />
 
             {/* Menu Cepat */}
             <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-slate-100 flex flex-col gap-2">
@@ -166,7 +205,6 @@ export default function Dashboard() {
                 <input type="text" required value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-slate-900 outline-none" />
               </div>
 
-              {/* PERBAIKAN 2: UI Dropdown Domisili / Lokasi diletakkan di sini */}
               <div className="mb-4">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Domisili / Lokasi</label>
                 <div className="relative">
@@ -197,6 +235,15 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* MODAL GAMIFIKASI */}
+      {showTCOnboarding && (
+        <TCOnboardingModal 
+          onClose={() => setShowTCOnboarding(false)}
+          onClaimSuccess={handleClaimSuccess}
+        />
+      )}
+      
     </div>
   );
 }

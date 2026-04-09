@@ -4,7 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 
 export const useUserDashboard = () => {
   const navigate = useNavigate();
-  const { user, token, updateKycStatus } = useContext(AuthContext) || {}; 
+  // Tambahkan 'logout' dari AuthContext jika Anda memilikinya di sana
+  const { user, token, updateKycStatus, logout } = useContext(AuthContext) || {}; 
   const authToken = token || localStorage.getItem('token');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -23,6 +24,16 @@ export const useUserDashboard = () => {
       const response = await fetch(`${API_URL}/api/dashboard/me?_t=${timestamp}`, {
         headers: { 'Authorization': `Bearer ${authToken}`, 'Cache-Control': 'no-cache, no-store' }
       });
+
+      // ---> PERBAIKAN 1: TANGANI ERROR 401 (UNAUTHORIZED) <---
+      if (response.status === 401 || response.status === 403) {
+        console.warn("Token expired atau tidak valid. Mengalihkan ke halaman login...");
+        localStorage.removeItem('token'); // Hapus token yang rusak
+        if (logout) logout();             // Bersihkan state global jika ada
+        navigate('/login');               // Tendang kembali ke login
+        return;                           // Hentikan eksekusi kode di bawahnya
+      }
+
       const result = await response.json();
       
       const responseTop = await fetch(`${API_URL}/api/dashboard/top-travellers?_t=${timestamp}`, {
@@ -31,16 +42,10 @@ export const useUserDashboard = () => {
       const resultTop = await responseTop.json();
 
       if (result.success) {
-        // 1. Simpan seluruh data dashboard ke state
         setDashboardData(result.data);
-        
         if (result.data.user.profile_banner) setBannerUrl(result.data.user.profile_banner);
-
-        // 2. Sinkronisasi status KYC lokal
         const freshKyc = String(result.data.user.kyc_status || 'unverified').toLowerCase();
         setKycStatus(freshKyc);
-        
-        // 3. Sinkronisasi status KYC global
         if (updateKycStatus) updateKycStatus(freshKyc);
       }
       if (resultTop.success) setTopTravellers(resultTop.data);
@@ -51,40 +56,57 @@ export const useUserDashboard = () => {
     }
   };
 
-  // Polling Otomatis Tiap 3 Detik
+  // ---> PERBAIKAN 2: BERSIHKAN INTERVAL DENGAN BENAR <---
   useEffect(() => { 
     let isMounted = true;
+    let interval; // Simpan ID interval ke variabel
+
     if (authToken) {
       fetchDashboardData(); 
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         if(isMounted) fetchDashboardData();
       }, 3000);
-      return () => {
-        isMounted = false;
-        clearInterval(interval);
-      }
     } else {
       setIsLoading(false);
       navigate('/login');
     }
+
+    // Fungsi Cleanup: Hentikan interval saat user pindah halaman / logout
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval); 
+    };
   }, [authToken, navigate]); 
 
-  // FUNGSI UPDATE KYC CODE
+  // FUNGSI UPDATE KYC CODE (Tetap mempertahankan otomatisasi 'BT-')
   const verifyKycCode = async (accessCode) => {
     try {
+      let finalCode = accessCode.trim().toUpperCase();
+      if (finalCode.length > 0 && !finalCode.startsWith('BT-')) {
+        finalCode = `BT-${finalCode}`;
+      }
+
       const response = await fetch(`${API_URL}/api/users/kyc/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ code: accessCode.trim().toUpperCase() })
+        body: JSON.stringify({ code: finalCode })
       });
-      const result = await response.json();
-      if (result.success) {
+      
+      const textResult = await response.text();
+      let result;
+      try {
+        result = JSON.parse(textResult);
+      } catch (e) {
+        return { success: false, error: 'Endpoint API tidak valid (404) atau Server Error.' };
+      }
+
+      if (response.ok && result.success) {
         setKycStatus('verified');
         if (updateKycStatus) updateKycStatus('verified');
         fetchDashboardData(); 
         return { success: true };
       }
-      return { success: false, error: result.error };
+      return { success: false, error: result.error || 'Kode verifikasi tidak valid / salah.' };
     } catch (error) {
       return { success: false, error: 'Terjadi kesalahan jaringan.' };
     }
@@ -141,7 +163,6 @@ export const useUserDashboard = () => {
     }
   };
 
-  // UPDATE PENTING DI SINI
   return {
     dashboardData, 
     isLoading, 
@@ -149,7 +170,6 @@ export const useUserDashboard = () => {
     bannerUrl, 
     setBannerUrl, 
     topTravellers,
-    // Kita panggil dashboardData?.user lebih dulu agar data yang di-render adalah data real-time terbaru dari database
     user: dashboardData?.user || user,
     activeOrder: dashboardData?.activeOrder || null,
     verifyKycCode, 
