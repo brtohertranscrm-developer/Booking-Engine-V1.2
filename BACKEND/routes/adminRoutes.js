@@ -2,6 +2,20 @@ const express = require('express');
 const db = require('../db');
 const { verifyAdmin } = require('../middlewares/authMiddleware');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+
+// Konfigurasi penyimpanan file dengan Multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Simpan di folder uploads
+  },
+  filename: function (req, file, cb) {
+    // Format nama: artikel-1698765432.jpg
+    cb(null, 'artikel-' + Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 // Semua route di sini otomatis menggunakan verifyAdmin
 router.use(verifyAdmin);
@@ -391,6 +405,81 @@ router.delete('/promos/:id', (req, res) => {
       res.json({ success: true, message: 'Promo berhasil dihapus' });
     }
   );
+});
+
+// ==========================================
+// ARTIKEL MANAGEMENT (SEO & GEO)
+// ==========================================
+
+// 1. GET ALL ARTICLES
+router.get('/articles', (req, res) => {
+  db.all(`SELECT * FROM articles ORDER BY created_at DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, data: rows || [] });
+  });
+});
+
+// 2. CREATE NEW ARTICLE
+router.post('/articles', (req, res) => {
+  const { title, slug, category, image_url, content, status, meta_title, meta_desc, geo_location, scheduled_at } = req.body;
+  
+  const query = `
+    INSERT INTO articles 
+    (title, slug, category, image_url, content, status, meta_title, meta_desc, geo_location, scheduled_at) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  db.run(query, [title, slug, category, image_url, content, status, meta_title, meta_desc, geo_location, scheduled_at], function(err) {
+    if (err) {
+      if (err.message.includes("UNIQUE constraint failed")) {
+        return res.status(400).json({ success: false, error: "Slug URL sudah digunakan, mohon gunakan slug lain." });
+      }
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    res.json({ success: true, message: 'Artikel berhasil ditambahkan', id: this.lastID });
+  });
+});
+
+// 3. UPDATE ARTICLE
+router.put('/articles/:id', (req, res) => {
+  const { title, slug, category, image_url, content, status, meta_title, meta_desc, geo_location, scheduled_at } = req.body;
+  
+  const query = `
+    UPDATE articles 
+    SET title=?, slug=?, category=?, image_url=?, content=?, status=?, meta_title=?, meta_desc=?, geo_location=?, scheduled_at=? 
+    WHERE id=?
+  `;
+  
+  db.run(query, [title, slug, category, image_url, content, status, meta_title, meta_desc, geo_location, scheduled_at, req.params.id], function(err) {
+    if (err) {
+      if (err.message.includes("UNIQUE constraint failed")) {
+        return res.status(400).json({ success: false, error: "Slug URL sudah digunakan, mohon gunakan slug lain." });
+      }
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    res.json({ success: true, message: 'Artikel berhasil diperbarui' });
+  });
+});
+
+// 4. DELETE ARTICLE
+router.delete('/articles/:id', (req, res) => {
+  db.run(`DELETE FROM articles WHERE id=?`, [req.params.id], function(err) {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, message: 'Artikel berhasil dihapus' });
+  });
+});
+
+// ==========================================
+// ENDPOINT UPLOAD GAMBAR
+// ==========================================
+router.post('/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'Tidak ada file yang diunggah' });
+  }
+  
+  // Buat URL lengkap untuk diakses frontend (contoh: http://localhost:5001/uploads/artikel-123.jpg)
+  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  res.json({ success: true, url: fileUrl });
 });
 
 module.exports = router;

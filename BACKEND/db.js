@@ -8,6 +8,11 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('❌ Gagal terhubung ke database:', err.message);
   } else {
     console.log('✅ Berhasil terhubung ke database SQLite.');
+    
+    // OPTIMASI: Aktifkan Foreign Key segera setelah koneksi berhasil
+    db.run("PRAGMA foreign_keys = ON", (pragmaErr) => {
+      if (pragmaErr) console.error("⚠️ Peringatan: Gagal mengaktifkan Foreign Key:", pragmaErr.message);
+    });
   }
 });
 
@@ -22,7 +27,7 @@ db.serialize(() => {
     db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`, (err) => {
       // Abaikan error jika kolom sudah ada
       if (err && !err.message.includes("duplicate column name")) {
-        console.error(`Peringatan: Gagal menambah ${columnName} di ${tableName}:`, err.message);
+        console.error(`⚠️ Peringatan: Gagal menambah ${columnName} di ${tableName}:`, err.message);
       }
     });
   };
@@ -49,7 +54,6 @@ db.serialize(() => {
     )
   `);
 
-  // Tabel Induk: Katalog Motor
   db.run(`
     CREATE TABLE IF NOT EXISTS motors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +65,6 @@ db.serialize(() => {
     )
   `);
 
-  // Tabel Anak: Data Fisik Plat Nomor Armada
   db.run(`
     CREATE TABLE IF NOT EXISTS motor_units (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,6 +140,25 @@ db.serialize(() => {
     )
   `);
 
+  // ---> TAMBAHAN BARU: TABEL ARTIKEL <---
+  db.run(`
+    CREATE TABLE IF NOT EXISTS articles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      slug TEXT UNIQUE,
+      category TEXT DEFAULT 'Berita',
+      image_url TEXT,
+      content TEXT NOT NULL,
+      status TEXT DEFAULT 'draft',
+      meta_title TEXT,
+      meta_desc TEXT,
+      geo_location TEXT,
+      scheduled_at TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      views INTEGER DEFAULT 0
+    )
+  `);
+
   // ==========================================
   // TAHAP 3: PEMANGGILAN FUNGSI (TAMBAH KOLOM)
   // Harus dipanggil SEBELUM blok db.serialize berakhir
@@ -150,8 +172,6 @@ db.serialize(() => {
   addColumnIfNotExists('users', 'reset_token', 'TEXT');
   addColumnIfNotExists('users', 'reset_token_expiry', 'INTEGER');
   addColumnIfNotExists('users', 'miles', 'INTEGER DEFAULT 0');
-  
-  // ---> TAMBAHAN BARU: Kolom domisili/lokasi user <---
   addColumnIfNotExists('users', 'location', 'TEXT DEFAULT "Lainnya"'); 
 
   // Update kolom untuk tabel Bookings
@@ -163,29 +183,29 @@ db.serialize(() => {
   // Update kolom untuk tabel Motors
   addColumnIfNotExists('motors', 'location', 'TEXT DEFAULT "Lempuyangan"');
   addColumnIfNotExists('motors', 'price_12h', 'INTEGER DEFAULT 0');
-  addColumnIfNotExists('motors', 'allow_dynamic_pricing', 'INTEGER DEFAULT 1'); // <--- Kolom Whitelist
+  addColumnIfNotExists('motors', 'allow_dynamic_pricing', 'INTEGER DEFAULT 1');
 
-  // UPDATE: Kolom baru di tabel promotions dimasukkan ke SINI
+  // Update kolom untuk tabel Promotions
   addColumnIfNotExists('promotions', 'usage_limit', 'INTEGER DEFAULT 0'); 
   addColumnIfNotExists('promotions', 'current_usage', 'INTEGER DEFAULT 0');
   addColumnIfNotExists('promotions', 'discount_percent', 'INTEGER DEFAULT 0');
   addColumnIfNotExists('promotions', 'max_discount', 'INTEGER DEFAULT 0');
 
+  // ---> TAMBAHAN BARU: Update kolom untuk tabel Articles <---
+  addColumnIfNotExists('articles', 'slug', 'TEXT UNIQUE');
+  addColumnIfNotExists('articles', 'meta_title', 'TEXT');
+  addColumnIfNotExists('articles', 'meta_desc', 'TEXT');
+  addColumnIfNotExists('articles', 'geo_location', 'TEXT');
+  addColumnIfNotExists('articles', 'views', 'INTEGER DEFAULT 0');
+
   // Buat Unique Index untuk Referral Code
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`, (err) => {
-    if (err) {
-        if (!err.message.includes("index idx_users_referral_code already exists")) {
-            console.error("Gagal membuat Unique Index untuk referral_code:", err.message);
-        }
+    if (err && !err.message.includes("index idx_users_referral_code already exists")) {
+      console.error("⚠️ Gagal membuat Unique Index untuk referral_code:", err.message);
     }
   });
 
   console.log('✅ Semua tabel & struktur kolom berhasil diverifikasi!');
-}); // <--- PENUTUP BLOK SERIALIZE 
-
-// Mengaktifkan Foreign Key
-db.run("PRAGMA foreign_keys = ON", (err) => {
-  if (err) console.error("Gagal mengaktifkan Foreign Key PRAGMA", err.message);
-});
+}); 
 
 module.exports = db;
