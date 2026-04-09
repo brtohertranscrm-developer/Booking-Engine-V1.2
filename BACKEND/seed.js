@@ -42,7 +42,9 @@ db.serialize(() => {
   const stmtUser = db.prepare('INSERT INTO users (id, name, email, password, phone, role, join_date, kyc_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
 
   // Eksekusi insert dengan password yang sudah di-hash
-  stmtUser.run(['U-001', 'Pandu Admin', 'admin@brothertrans.com', adminPassword, '08123456789', 'admin', new Date().toISOString(), 'approved']);
+  // ---> UBAH 'admin' MENJADI 'superadmin' DI BARIS BAWAH INI <---
+  stmtUser.run(['U-001', 'Pandu Admin', 'admin@brothertrans.com', adminPassword, '08123456789', 'superadmin', new Date().toISOString(), 'approved']);
+  
   stmtUser.run(['U-002', 'Pelanggan Setia', 'user@gmail.com', userPassword, '08556677889', 'user', new Date().toISOString(), 'pending']);
 
   stmtUser.finalize();
