@@ -50,18 +50,17 @@ export default function ArticleDetail() {
       <ArticleHeader article={article} />
 
       {/* 2. Content Container */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-32 relative z-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-8 -mt-32 relative z-20">
         
-        {/* Konten Artikel (Render HTML dari Quill) */}
+      {/* Konten Artikel (Render HTML dari Quill) */}
         <div 
-          // PERBAIKAN 2: Tambahkan break-words di baris paling bawah class ini
           className="prose prose-lg md:prose-xl prose-slate max-w-none 
             prose-headings:font-black prose-headings:text-slate-900 prose-headings:tracking-tight
             prose-p:text-slate-600 prose-p:leading-relaxed prose-p:font-medium
             prose-strong:text-slate-900 prose-strong:font-black
             prose-img:rounded-[2.5rem] prose-img:shadow-2xl prose-img:border prose-img:border-slate-100
             prose-blockquote:border-l-4 prose-blockquote:border-rose-500 prose-blockquote:bg-rose-50/50 prose-blockquote:py-4 prose-blockquote:px-8 prose-blockquote:rounded-r-3xl prose-blockquote:italic prose-blockquote:text-slate-700
-            mb-20 pt-16 break-words"
+            mb-20 pt-24 break-words" 
           dangerouslySetInnerHTML={{ __html: article.content }} 
         />
 
