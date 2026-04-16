@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bike, FileText, TrendingUp, Users, 
   Settings, LogOut, ClipboardList, Package 
 } from 'lucide-react';
-import { AuthContext } from '../../../context/AuthContext'; 
+import { AuthContext } from '../../../context/AuthContext';
 
 const AdminSidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, handleLogout }) => {
   // Tambahkan default object {} agar tidak error saat context masih loading
@@ -13,6 +13,7 @@ const AdminSidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, handleLogout }) =
   const adminMenus = [
     { name: 'Dashboard', path: '/admin', key: 'dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'Data Pesanan', path: '/admin/booking', key: 'booking', icon: <ClipboardList size={20} /> },
+    { name: 'Finance', path: '/admin/finance', key: 'finance', icon: <TrendingUp size={20} /> },
     { name: 'Manajemen Armada', path: '/admin/armada', key: 'armada', icon: <Bike size={20} /> },
     { name: 'Manajemen Loker', path: '/admin/loker', key: 'loker', icon: <Package size={20} /> },
     { name: 'Dynamic Pricing', path: '/admin/pricing', key: 'pricing', icon: <TrendingUp size={20} /> },

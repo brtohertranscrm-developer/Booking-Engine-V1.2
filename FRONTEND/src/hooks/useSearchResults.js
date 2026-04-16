@@ -94,10 +94,13 @@ export const useSearchResults = () => {
   // Filtering Lokal
   const filteredResults = motors.filter(motor => {
     if (!motor) return false;
-    const motorCity = motor.id % 2 !== 0 ? 'Stasiun Lempuyangan' : 'Stasiun Solo Balapan';
+    // Perbaikan: Gunakan field location asli dari database
+    const motorCity = motor.location || 'Stasiun Lempuyangan'; // Fallback jika DB kosong
     const matchCity = currentCity ? motorCity === currentCity : true; 
+    
     const categoryStr = motor.category || '';
     const matchType = filterType === 'Semua' ? true : categoryStr.toLowerCase().includes(filterType.toLowerCase());
+    
     return matchCity && matchType;
   });
 

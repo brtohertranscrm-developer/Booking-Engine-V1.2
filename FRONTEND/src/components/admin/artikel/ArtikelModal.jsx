@@ -35,7 +35,7 @@ const ArtikelModal = ({ onClose, onSubmit, initialData }) => {
     setFormData(prev => ({ ...prev, content: value }));
   };
 
-  // --- FUNGSI BARU: Upload Gambar ke Backend ---
+// --- FUNGSI BARU: Upload Gambar ke Backend ---
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -43,10 +43,11 @@ const ArtikelModal = ({ onClose, onSubmit, initialData }) => {
     setIsUploading(true);
     const uploadData = new FormData();
     uploadData.append('image', file);
+    const API_URL = import.meta.env.VITE_API_URL; // Tambahkan ini
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/admin/upload', {
+      const response = await fetch(`${API_URL}/api/admin/upload`, { // Ubah disini
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: uploadData

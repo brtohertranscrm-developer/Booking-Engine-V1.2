@@ -1,78 +1,73 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../utils/api'; // Sesuaikan path
 
 export const usePromotions = () => {
   const [promos, setPromos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const authToken = localStorage.getItem('admin_token') || localStorage.getItem('token');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
+  // Fungsi Fetch
   const fetchPromos = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/promotions`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      if (data.success) setPromos(data.data);
+      const data = await apiFetch('/api/admin/promos'); // Asumsi endpoint disamakan di backend
+      setPromos(data.data);
     } catch (error) {
-      console.error('Gagal mengambil data promo:', error);
+      alert(error.message || 'Gagal mengambil data promo.');
     } finally {
       setIsLoading(false);
     }
-  }, [authToken, API_URL]);
+  }, []);
 
-  const savePromo = async (promoData, editingId) => {
+  // Fungsi Save (Create & Update)
+  const savePromo = async (promoData, editingId = null) => {
     try {
-      const method = editingId ? 'PUT' : 'POST';
-      const endpoint = editingId 
-        ? `${API_URL}/api/admin/promotions/${editingId}` 
-        : `${API_URL}/api/admin/promotions`;
-
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
+      const endpoint = editingId ? `/api/admin/promos/${editingId}` : '/api/admin/promos';
+      await apiFetch(endpoint, {
+        method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify(promoData)
       });
       
-      const data = await res.json();
-      if (data.success) {
-        alert(editingId ? 'Promo berhasil diperbarui!' : 'Promo baru berhasil dipublikasikan!');
-        fetchPromos();
-        return true;
-      } else {
-        alert(`Gagal menyimpan promo: ${data.error || 'Kesalahan Server'}`);
-        return false;
-      }
+      alert(editingId ? 'Promo berhasil diperbarui!' : 'Promo berhasil ditambahkan!');
+      fetchPromos();
+      return true;
     } catch (error) {
-      alert('Gagal terhubung ke server.');
+      alert(`Gagal menyimpan promo: ${error.message}`);
       return false;
     }
   };
 
+  // Fungsi Delete
   const deletePromo = async (id) => {
     if (!window.confirm('Hapus promo ini secara permanen?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/promotions/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        fetchPromos();
-      } else {
-        alert(`Gagal menghapus: ${data.error}`);
-      }
+      await apiFetch(`/api/admin/promos/${id}`, { method: 'DELETE' });
+      alert('Promo berhasil dihapus!');
+      fetchPromos();
+      return true;
     } catch (error) {
-      alert('Gagal menghapus promo.');
+      alert(`Gagal menghapus promo: ${error.message}`);
+      return false;
     }
   };
 
-  useEffect(() => { 
-    if (authToken) fetchPromos(); 
-  }, [fetchPromos, authToken]);
+  // Fungsi Toggle Status Aktif/Mati
+  const togglePromoStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    if (!window.confirm(`Yakin ingin ${newStatus === 1 ? 'mengaktifkan' : 'mematikan'} promo ini?`)) return;
+    try {
+      await apiFetch(`/api/admin/promos/${id}/toggle`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: newStatus })
+      });
+      fetchPromos(); 
+    } catch (error) {
+      alert(`Gagal mengubah status promo: ${error.message}`);
+    }
+  };
 
-  return { promos, isLoading, savePromo, deletePromo };
+  useEffect(() => {
+    fetchPromos();
+  }, [fetchPromos]);
+
+  return { promos, isLoading, fetchPromos, savePromo, deletePromo, togglePromoStatus };
 };

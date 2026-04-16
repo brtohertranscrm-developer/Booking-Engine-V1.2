@@ -4,11 +4,12 @@ export const useArtikel = () => {
   const [artikel, setArtikel] = useState([]);
   const [loading, setLoading] = useState(false);
   const token = localStorage.getItem('token');
+  const API_URL = import.meta.env.VITE_API_URL; // Tambahkan ini
 
   const fetchArtikel = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/admin/articles', {
+      const response = await fetch(`${API_URL}/api/admin/articles`, { // Ubah disini
         headers: { Authorization: `Bearer ${token}` }
       });
       const result = await response.json();
@@ -22,7 +23,7 @@ export const useArtikel = () => {
 
   const addArtikel = async (data) => {
     try {
-      await fetch('http://localhost:5001/api/admin/articles', {
+      await fetch(`${API_URL}/api/admin/articles`, { // Ubah disini
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -36,7 +37,7 @@ export const useArtikel = () => {
 
   const editArtikel = async (id, data) => {
     try {
-      await fetch(`http://localhost:5001/api/admin/articles/${id}`, {
+      await fetch(`${API_URL}/api/admin/articles/${id}`, { // Ubah disini
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -51,7 +52,7 @@ export const useArtikel = () => {
   const deleteArtikel = async (id) => {
     if(!window.confirm("Yakin ingin menghapus artikel ini?")) return;
     try {
-      await fetch(`http://localhost:5001/api/admin/articles/${id}`, {
+      await fetch(`${API_URL}/api/admin/articles/${id}`, { // Ubah disini
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

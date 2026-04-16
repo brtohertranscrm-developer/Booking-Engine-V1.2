@@ -5,10 +5,11 @@ const SurgeTab = () => {
   const [surgeConfig, setSurgeConfig] = useState({ isActive: false, multiplier: 0, triggerStock: 0 });
   const [isSaving, setIsSaving] = useState(false);
   const token = localStorage.getItem('token');
+  const API_URL = import.meta.env.VITE_API_URL; // Tambahkan ini
 
   // Ambil data asli dari database saat halaman dibuka
   useEffect(() => {
-    fetch('http://localhost:5001/api/admin/pricing/surge', {
+    fetch(`${API_URL}/api/admin/pricing/surge`, { // Ubah disini
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => res.json())
@@ -22,20 +23,19 @@ const SurgeTab = () => {
       }
     })
     .catch(err => console.error("Gagal load data surge:", err));
-  }, [token]);
+  }, [token, API_URL]);
 
   // Fungsi untuk mengirim data ke database
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('http://localhost:5001/api/admin/pricing/surge', {
+      const response = await fetch(`${API_URL}/api/admin/pricing/surge`, { // Ubah disini
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          // PERBAIKAN 1: Pastikan data yang dikirim adalah integer 1 atau 0 untuk SQLite
           is_active: surgeConfig.isActive ? 1 : 0, 
           markup_percentage: surgeConfig.multiplier,
           stock_condition: surgeConfig.triggerStock

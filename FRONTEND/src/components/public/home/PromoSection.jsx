@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Ticket, ChevronRight, ChevronLeft, Zap, Flame, Users } from 'lucide-react';
 
@@ -6,14 +6,18 @@ const PromoSection = ({ promotions }) => {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev === promotions.length - 1 ? 0 : prev + 1));
+  // Perbaikan Poin 19: Gunakan useCallback agar referensinya stabil
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev === promotions.length - 1 ? 0 : prev + 1));
+  }, [promotions.length]);
+
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? promotions.length - 1 : prev - 1));
 
   useEffect(() => {
     if (promotions.length <= 1) return;
     const slideInterval = setInterval(nextSlide, 5000);
     return () => clearInterval(slideInterval);
-  }, [promotions.length, nextSlide]); // Added nextSlide to dependency array
+  }, [promotions.length, nextSlide]); // Sekarang aman dan tidak render ulang terus
 
   const getPromoIcon = (tag) => {
     if (!tag) return <Zap size={14} className="text-white"/>;

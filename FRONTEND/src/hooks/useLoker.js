@@ -1,83 +1,130 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../utils/api';
 
+// ==========================================
+// HOOK: useLoker — Admin manage loker
+// ==========================================
 export const useLoker = () => {
-  const [lockers, setLockers] = useState([]);
+  const [lokers, setLokers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Gunakan URL dinamis agar aman saat web di-hosting
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-
-  // 2. Fungsi penarik token yang selalu fresh (segar) saat fungsi dipanggil
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  };
-
-  const fetchLockers = useCallback(async () => {
+  const fetchLokers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/lockers`, {
-        headers: getAuthHeaders() // Gunakan header dinamis
-      });
-      const data = await res.json();
-      if (data.success) setLockers(data.data);
-    } catch (error) {
-      console.error('Gagal mengambil data loker:', error);
+      const data = await apiFetch('/api/admin/loker');
+      setLokers(data.data);
+    } catch (err) {
+      console.error('Gagal fetch lokers:', err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [API_URL]); // authToken tidak lagi jadi dependency
+  }, []);
 
-  const addLocker = async (newLocker) => {
+  const addLoker = async (payload) => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/lockers`, {
+      await apiFetch('/api/admin/loker', {
         method: 'POST',
-        headers: getAuthHeaders(), // Gunakan header dinamis
-        body: JSON.stringify({
-          ...newLocker,
-          price_per_hour: Number(newLocker.price_per_hour)
-        })
+        body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (data.success) {
-        alert(`Loker ${newLocker.locker_number} berhasil ditambahkan!`);
-        fetchLockers(); 
-        return true;
-      }
-      return false;
-    } catch (error) {
-      alert('Koneksi gagal.');
+      fetchLokers();
+      return true;
+    } catch (err) {
+      alert(err.message || 'Gagal menambahkan loker.');
       return false;
     }
   };
 
-  const updateLockerStatus = async (id, currentStatus) => {
-    if (currentStatus === 'occupied') {
-      alert('Loker sedang digunakan pelanggan!');
-      return;
-    }
-    const newStatus = currentStatus === 'available' ? 'maintenance' : 'available';
-    if (!window.confirm(`Ubah status ke ${newStatus}?`)) return;
-
+  const editLoker = async (id, payload) => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/lockers/${id}/status`, {
+      await apiFetch(`/api/admin/loker/${id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(), // Gunakan header dinamis
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (data.success) fetchLockers(); 
-    } catch (error) {
-      alert('Gagal update.');
+      fetchLokers();
+      return true;
+    } catch (err) {
+      alert(err.message || 'Gagal memperbarui loker.');
+      return false;
     }
   };
 
-  useEffect(() => {
-    fetchLockers();
-  }, [fetchLockers]);
+  const deleteLoker = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus loker ini?')) return false;
+    try {
+      await apiFetch(`/api/admin/loker/${id}`, { method: 'DELETE' });
+      fetchLokers();
+      return true;
+    } catch (err) {
+      alert(err.message || 'Gagal menghapus loker.');
+      return false;
+    }
+  };
 
-  return { lockers, isLoading, addLocker, updateLockerStatus };
+  useEffect(() => { fetchLokers(); }, [fetchLokers]);
+
+  return { lokers, isLoading, fetchLokers, addLoker, editLoker, deleteLoker };
+};
+
+// ==========================================
+// HOOK: useLokerAddons — Admin manage addon pickup/drop
+// ==========================================
+export const useLokerAddons = () => {
+  const [addons, setAddons] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchAddons = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiFetch('/api/admin/loker/addons');
+      setAddons(data.data);
+    } catch (err) {
+      console.error('Gagal fetch loker addons:', err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const addAddon = async (payload) => {
+    try {
+      await apiFetch('/api/admin/loker/addons', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      fetchAddons();
+      return true;
+    } catch (err) {
+      alert(err.message || 'Gagal menambahkan addon.');
+      return false;
+    }
+  };
+
+  const editAddon = async (id, payload) => {
+    try {
+      await apiFetch(`/api/admin/loker/addons/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+      fetchAddons();
+      return true;
+    } catch (err) {
+      alert(err.message || 'Gagal memperbarui addon.');
+      return false;
+    }
+  };
+
+  const deleteAddon = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus addon ini?')) return false;
+    try {
+      await apiFetch(`/api/admin/loker/addons/${id}`, { method: 'DELETE' });
+      fetchAddons();
+      return true;
+    } catch (err) {
+      alert(err.message || 'Gagal menghapus addon.');
+      return false;
+    }
+  };
+
+  useEffect(() => { fetchAddons(); }, [fetchAddons]);
+
+  return { addons, isLoading, fetchAddons, addAddon, editAddon, deleteAddon };
 };

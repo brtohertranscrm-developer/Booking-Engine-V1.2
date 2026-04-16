@@ -3,11 +3,12 @@ import {
   Search, Plus, Loader2, Percent, Power, Ticket, X, 
   ChevronDown, ChevronUp, Edit, Trash2 
 } from 'lucide-react';
-import { usePromo } from '../../../hooks/usePromo';
+// PERBAIKAN: Import usePromotions (bukan usePromo)
+import { usePromotions } from '../../../hooks/usePromotions';
 
 const PromoTab = () => {
-  // Pastikan Anda menambahkan updatePromo dan deletePromo di dalam hook usePromo Anda
-  const { promos, isLoading, addPromo, updatePromo, deletePromo, togglePromoStatus } = usePromo();
+  // PERBAIKAN: Sesuaikan fungsi dengan usePromotions (savePromo menggantikan add/update)
+  const { promos, isLoading, savePromo, deletePromo, togglePromoStatus } = usePromotions();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Accordion State
@@ -48,12 +49,8 @@ const PromoTab = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    let success = false;
-    if (modalMode === 'add') {
-      success = await addPromo(formData);
-    } else {
-      success = await updatePromo(editingId, formData);
-    }
+    // PERBAIKAN: Gunakan savePromo yang menangani Add maupun Edit
+    const success = await savePromo(formData, modalMode === 'edit' ? editingId : null);
 
     if (success) {
       setIsModalOpen(false);
@@ -63,6 +60,8 @@ const PromoTab = () => {
   };
 
   const handleDelete = async (id, code) => {
+    // Fungsi confirm sudah ada di dalam hook usePromotions, 
+    // tapi jika ingin custom message dengan nama kode:
     if (window.confirm(`Apakah Anda yakin ingin menghapus promo ${code}?`)) {
       await deletePromo(id);
     }
@@ -103,7 +102,6 @@ const PromoTab = () => {
                 {filteredPromos.map((promo) => (
                   <div key={promo.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
                     
-                    {/* Header Card (Bisa diklik untuk expand) */}
                     <div 
                       onClick={() => toggleExpand(promo.id)}
                       className="p-5 cursor-pointer flex items-center justify-between hover:bg-emerald-50/30 transition-colors"
@@ -126,25 +124,23 @@ const PromoTab = () => {
                       </div>
                     </div>
 
-                    {/* Body Card (Accordion) */}
                     {expandedId === promo.id && (
                       <div className="px-5 pb-5 pt-2 border-t border-gray-100 bg-gray-50/50 animate-fade-in">
                         <div className="grid grid-cols-2 gap-4 mb-5 bg-white p-4 rounded-xl border border-gray-100">
                           <div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Maks. Potongan</p>
                             <p className="font-bold text-brand-dark text-sm">
-                              Rp {promo.max_discount ? promo.max_discount.toLocaleString('id-ID') : 'Tanpa Batas'}
+                              Rp {promo.max_discount ? Number(promo.max_discount).toLocaleString('id-ID') : 'Tanpa Batas'}
                             </p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Terpakai / Kuota</p>
                             <p className="font-bold text-slate-600 text-sm">
-                              {promo.current_usage} / {promo.usage_limit === 0 ? '∞' : promo.usage_limit}
+                              {promo.current_usage || 0} / {promo.usage_limit === 0 ? '∞' : promo.usage_limit}
                             </p>
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex items-center justify-between gap-2">
                           <button 
                             onClick={() => togglePromoStatus(promo.id, promo.is_active)} 
@@ -179,7 +175,6 @@ const PromoTab = () => {
         )}
       </div>
 
-      {/* Modal Tambah/Edit Promo */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
@@ -247,4 +242,5 @@ const PromoTab = () => {
     </div>
   );
 };
+
 export default PromoTab;
